@@ -478,6 +478,11 @@ export default function Navbar({ user, setUser }) {
                 </Link>
                 <Link to="/admin/courts">MANAGE COURTS</Link>
                 <Link to="/admin/borrow">MANAGE BORROW</Link>
+                <Link
+                  to="/admin/history"
+                >
+                BOOKING HISTORY
+                </Link>
               </>
             ) : (
               <>

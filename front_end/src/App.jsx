@@ -116,6 +116,7 @@ import RegisterPage from './Pages/Auth/RegisterPage';
 import AdminDashboard from './Pages/Admin/AdminDashboard';
 import AdminCourts from './Pages/Admin/AdminCourts';
 import ManageBorrowPage from "./Pages/Admin/ManageBorrowPage";
+import AdminBookingHistory from './Pages/Admin/AdminBookingHistory';
 // function App() {
 //   // ในอนาคตค่านี้จะมาจากระบบ Login จริง
 //   const [user, setUser] = useState({ loggedIn: true, role: 'admin' }); 
@@ -239,6 +240,7 @@ function App() {
               ? <ManageBorrowPage />
               : <Navigate to="/" />}
           />
+          <Route path="/admin/history" element={<AdminBookingHistory />} />
       </Routes>
     </Router>
   );

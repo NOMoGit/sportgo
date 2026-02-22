@@ -245,47 +245,130 @@ const AdminDashboard = () => {
   //   { id: 104, user: "Nong Chachacha", email: "uhruuhni11@gmail.com", type: "Football", court: "Field 2", time: "18.00-21.00", status: "Paid" },
   // ]);
   const [pendingBookings, setPendingBookings] = useState([]);
-  useEffect(() => {
-  const fetchBookings = async () => {
-    const { data, error } = await supabase
+//   const fetchBookings = async () => {
+//   const { data, error } = await supabase
+//     .from("bookings")
+//     .select(`
+//       id,
+//       booking_date,
+//       receipt_url,
+//       status,
+//       users ( username, email ),
+//       courts ( name, category )
+//     `)
+//     .order("created_at", { ascending: false });
+
+//   if (!error && data) {
+//     setPendingBookings(
+//       data.map(b => ({
+//         id: b.id,
+//         user: b.users?.username ?? "-",
+//         email: b.users?.email ?? "-",
+//         type: b.courts?.category ?? "-",
+//         court: b.courts?.name ?? "-",
+//         time: b.booking_date,
+//         receipt_url: b.receipt_url,
+//         status: b.status
+//       }))
+//     );
+//   }
+// };
+const fetchBookings = async () => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
     .from("bookings")
     .select(`
       id,
       booking_date,
       receipt_url,
       status,
-      
-      users (
-        username,
-        email
-      ),
-      courts (
-        name,
-        category
-      )
-        
+      users ( username, email ),
+      courts ( name, category )
     `)
-    .order("created_at", { ascending: false });
+    .gte("booking_date", `${today}T00:00:00`) // ✅ วันนี้ + อนาคต
+    .order("booking_date", { ascending: true });
 
-    if (!error && data) {
-      setPendingBookings(
-        data.map(b => ({
-          id: b.id,
-          user: b.users?.username ?? "-",
-          email: b.users?.email ?? "-",
-          type: b.courts?.category ?? "-",
-          court: b.courts?.name ?? "-",
-          time: b.booking_date,
-          receipt_url: b.receipt_url,
-          status: b.status
-        }))
-      );
-    }
-  };
+  if (!error && data) {
+    setPendingBookings(
+      data.map(b => ({
+        id: b.id,
+        user: b.users?.username ?? "-",
+        email: b.users?.email ?? "-",
+        type: b.courts?.category ?? "-",
+        court: b.courts?.name ?? "-",
+        time: b.booking_date,
+        receipt_url: b.receipt_url,
+        status: b.status
+      }))
+    );
+  }
+};
+//   useEffect(() => {
+//   const fetchBookings = async () => {
+//     const { data, error } = await supabase
+//     .from("bookings")
+//     .select(`
+//       id,
+//       booking_date,
+//       receipt_url,
+//       status,
+      
+//       users (
+//         username,
+//         email
+//       ),
+//       courts (
+//         name,
+//         category
+//       )
+        
+//     `)
+//     .order("created_at", { ascending: false });
 
-  fetchBookings();
-}, []);
+//     if (!error && data) {
+//       setPendingBookings(
+//         data.map(b => ({
+//           id: b.id,
+//           user: b.users?.username ?? "-",
+//           email: b.users?.email ?? "-",
+//           type: b.courts?.category ?? "-",
+//           court: b.courts?.name ?? "-",
+//           time: b.booking_date,
+//           receipt_url: b.receipt_url,
+//           status: b.status
+//         }))
+//       );
+//     }
+//   };
 
+//   fetchBookings();
+// }, []);
+// useEffect(() => {
+//   // โหลดข้อมูลครั้งแรก
+//   fetchBookings();
+
+//   // subscribe realtime
+//   const channel = supabase
+//     .channel("admin-bookings-realtime")
+//     .on(
+//       "postgres_changes",
+//       {
+//         event: "*", // INSERT | UPDATE | DELETE
+//         schema: "public",
+//         table: "bookings"
+//       },
+//       (payload) => {
+//         console.log("Realtime change:", payload);
+//         fetchBookings(); // รีโหลดข้อมูลทุกครั้งที่มีการเปลี่ยน
+//       }
+//     )
+//     .subscribe();
+
+//   return () => {
+//     supabase.removeChannel(channel);
+//   };
+// }, []);
 const navigate = useNavigate();
 const handleLogout = async () => {
   await supabase.auth.signOut();
@@ -298,68 +381,163 @@ const [stats, setStats] = useState({
   todayRevenue: 0,
   bookedCourts: 0
 });
+// useEffect(() => {
+//   const fetchStats = async () => {
+//     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+//     // 1. รอตรวจการชำระเงิน
+//     const { count: waiting } = await supabase
+//       .from("bookings")
+//       .select("*", { count: "exact", head: true })
+//       .eq("status", "pending");
+
+//     // 2. จำนวนคนจอง (ทั้งหมด)
+//     const { count: totalBookings } = await supabase
+//       .from("bookings")
+//       .select("*", { count: "exact", head: true });
+
+//     // 3. รายได้วันนี้ (เฉพาะที่ paid)
+//     const { data: revenueData } = await supabase
+//       .from("bookings")
+//       .select("total_price")
+//       .eq("status", "paid")
+//       .eq("booking_date", today);
+
+//     const todayRevenue =
+//       revenueData?.reduce((sum, b) => sum + Number(b.total_price), 0) ?? 0;
+
+//     // 4. สนามที่ถูกจองวันนี้ (distinct court_id)
+//     const { data: courtsData } = await supabase
+//       .from("bookings")
+//       .select("court_id")
+//       .eq("booking_date", today);
+
+//     const bookedCourts = new Set(
+//       courtsData?.map(c => c.court_id)
+//     ).size;
+
+//     setStats({
+//       waiting: waiting ?? 0,
+//       totalBookings: totalBookings ?? 0,
+//       todayRevenue,
+//       bookedCourts
+//     });
+//   };
+
+//   fetchStats();
+// }, []);
+const fetchStats = async () => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { count: waiting } = await supabase
+    .from("bookings")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  const { count: totalBookings } = await supabase
+    .from("bookings")
+    .select("*", { count: "exact", head: true });
+
+  // ❗ ยังไม่แก้ revenue ตรงนี้ (ดูข้อ 2)
+  const { data: revenueData } = await supabase
+    .from("bookings")
+    .select("total_price")
+    .eq("status", "paid")
+    .eq("booking_date", today);
+
+  const todayRevenue =
+    revenueData?.reduce((sum, b) => sum + Number(b.total_price), 0) ?? 0;
+
+  const { data: courtsData } = await supabase
+    .from("bookings")
+    .select("court_id")
+    .eq("booking_date", today);
+
+  setStats({
+    waiting: waiting ?? 0,
+    totalBookings: totalBookings ?? 0,
+    todayRevenue,
+    bookedCourts: new Set(courtsData?.map(c => c.court_id)).size
+  });
+};
+
 useEffect(() => {
-  const fetchStats = async () => {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  fetchBookings();
+  fetchStats(); // ⭐ โหลดครั้งแรก
 
-    // 1. รอตรวจการชำระเงิน
-    const { count: waiting } = await supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+  const channel = supabase
+    .channel("admin-bookings-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "bookings"
+      },
+      () => {
+        fetchBookings();
+        fetchStats(); // ⭐ สำคัญมาก
+      }
+    )
+    .subscribe();
 
-    // 2. จำนวนคนจอง (ทั้งหมด)
-    const { count: totalBookings } = await supabase
-      .from("bookings")
-      .select("*", { count: "exact", head: true });
-
-    // 3. รายได้วันนี้ (เฉพาะที่ paid)
-    const { data: revenueData } = await supabase
-      .from("bookings")
-      .select("total_price")
-      .eq("status", "paid")
-      .eq("booking_date", today);
-
-    const todayRevenue =
-      revenueData?.reduce((sum, b) => sum + Number(b.total_price), 0) ?? 0;
-
-    // 4. สนามที่ถูกจองวันนี้ (distinct court_id)
-    const { data: courtsData } = await supabase
-      .from("bookings")
-      .select("court_id")
-      .eq("booking_date", today);
-
-    const bookedCourts = new Set(
-      courtsData?.map(c => c.court_id)
-    ).size;
-
-    setStats({
-      waiting: waiting ?? 0,
-      totalBookings: totalBookings ?? 0,
-      todayRevenue,
-      bookedCourts
-    });
+  return () => {
+    supabase.removeChannel(channel);
   };
-
-  fetchStats();
 }, []);
+// const updateBookingStatus = async (bookingId, newStatus) => {
+//   const { error } = await supabase
+//     .from("bookings")
+//     .update({ status: newStatus })
+//     .eq("id", bookingId);
 
+//   if (!error) {
+//     setPendingBookings(prev =>
+//       prev.map(b =>
+//         b.id === bookingId ? { ...b, status: newStatus } : b
+//       )
+//     );
+//   } else {
+//     console.error(error);
+//     alert("อัปเดตสถานะไม่สำเร็จ");
+//   }
+// };
+// const updateBookingStatus = async (bookingId, newStatus) => {
+//   const updateData =
+//     newStatus === "paid"
+//       ? { status: "paid", paid_at: new Date().toISOString() }
+//       : { status: newStatus };
+
+//   const { error } = await supabase
+//     .from("bookings")
+//     .update(updateData)
+//     .eq("id", bookingId);
+
+//   if (!error) {
+//     setPendingBookings(prev =>
+//       prev.map(b =>
+//         b.id === bookingId ? { ...b, status: newStatus } : b
+//       )
+//     );
+//   }
+// };
 const updateBookingStatus = async (bookingId, newStatus) => {
   const { error } = await supabase
     .from("bookings")
     .update({ status: newStatus })
     .eq("id", bookingId);
 
-  if (!error) {
-    setPendingBookings(prev =>
-      prev.map(b =>
-        b.id === bookingId ? { ...b, status: newStatus } : b
-      )
-    );
-  } else {
+  if (error) {
     console.error(error);
     alert("อัปเดตสถานะไม่สำเร็จ");
+    return;
   }
+
+  setPendingBookings(prev =>
+    prev.map(b =>
+      b.id === bookingId ? { ...b, status: newStatus } : b
+    )
+  );
 };
   return (
     <div className="flex min-h-screen bg-white">

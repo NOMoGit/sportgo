@@ -87,7 +87,29 @@ import { Link } from 'react-router-dom';
 import { supabase } from "../../supabaseClient";
 const AdminCourts = () => {
   const [courts, setCourts] = useState([]);
-  useEffect(() => {
+  // useEffect(() => {
+  //   const fetchCourts = async () => {
+  //     const { data, error } = await supabase
+  //       .from("courts")
+  //       .select(`
+  //         id,
+  //         name,
+  //         category,
+  //         price_per_hour,
+  //         is_available
+  //       `)
+  //       .order("id");
+
+  //     if (!error) {
+  //       setCourts(data);
+  //     } else {
+  //       console.error(error);
+  //     }
+  //   };
+
+  //   fetchCourts();
+  // }, []);
+
   const fetchCourts = async () => {
     const { data, error } = await supabase
       .from("courts")
@@ -101,15 +123,49 @@ const AdminCourts = () => {
       .order("id");
 
     if (!error) {
-      setCourts(data);
+      setCourts(data || []);
     } else {
       console.error(error);
     }
   };
 
-  fetchCourts();
-}, []);
+  // ✅ 2. useEffect เดียว: fetch + realtime
+  useEffect(() => {
+    fetchCourts(); // โหลดครั้งแรก
 
+    const channel = supabase
+      .channel("realtime-courts")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "courts",
+        },
+        (payload) => {
+          setCourts(prev => {
+            if (payload.eventType === "UPDATE") {
+              return prev.map(c =>
+                c.id === payload.new.id ? payload.new : c
+              );
+            }
+            if (payload.eventType === "INSERT") {
+              return [...prev, payload.new];
+            }
+            if (payload.eventType === "DELETE") {
+              return prev.filter(c => c.id !== payload.old.id);
+            }
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+  
  const toggleStatus = async (court) => {
     const newStatus = !court.is_available;
 

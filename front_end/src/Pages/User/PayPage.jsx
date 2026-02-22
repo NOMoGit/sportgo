@@ -282,11 +282,11 @@ export default function PayPage() {
   const { 
     courtData = null, 
     bookingTimes = [], 
-    totalAmount = 0, 
+    courtAmount = 0, 
     selectedEquipments = [],
     bookingDate = null 
   } = location.state || {};
-
+  const totalAmount = courtAmount;
   const [qrCode, setQrCode] = useState("sample");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);

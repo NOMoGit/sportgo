@@ -415,6 +415,7 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
         receipt_url: data.publicUrl,
         status: 'pending',
         
+        
       }])
       .select()
       .single();

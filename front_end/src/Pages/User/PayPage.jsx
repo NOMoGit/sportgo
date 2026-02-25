@@ -284,9 +284,10 @@ export default function PayPage() {
     bookingTimes = [], 
     courtAmount = 0, 
     selectedEquipments = [],
-    bookingDate = null 
+    bookingDate = null,
+    totalAmount = 0 
   } = location.state || {};
-  const totalAmount = courtAmount;
+  // const totalAmount = courtAmount;
   const [qrCode, setQrCode] = useState("sample");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);

@@ -330,32 +330,58 @@ export default function BorrowPage() {
       return updated;
     });
   }, [equipments]);
+  // const updateQuantity = (item, delta) => {
+  //   setSelectedEquips(prev => {
+  //     const currentQty = prev[item.id] || 0;
+  //     const newQty = currentQty + delta;
+
+  //     if (newQty < 0) return prev;
+
+  //     // ❗ เช็ก stock
+  //     if (newQty > item.stock) {
+  //       alert("อุปกรณ์ไม่เพียงพอ");
+  //       return prev;
+  //     }
+
+  //     return {
+  //       ...prev,
+  //       [item.id]: newQty
+  //     };
+  //   });
+  // };
   const updateQuantity = (item, delta) => {
-    setSelectedEquips(prev => {
-      const currentQty = prev[item.id] || 0;
-      const newQty = currentQty + delta;
+  setSelectedEquips(prev => {
+    const current = prev[item.id] || {
+      id: item.id,
+      qty: 0,
+      price: Number(item.price_per_unit),
+      name: item.name
+    };
 
-      if (newQty < 0) return prev;
+    const newQty = current.qty + delta;
+    if (newQty < 0) return prev;
+    if (newQty > item.stock) {
+      alert("อุปกรณ์ไม่เพียงพอ");
+      return prev;
+    }
 
-      // ❗ เช็ก stock
-      if (newQty > item.stock) {
-        alert("อุปกรณ์ไม่เพียงพอ");
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [item.id]: newQty
-      };
-    });
-  };
+    return {
+      ...prev,
+      [item.id]: { ...current, qty: newQty }
+    };
+  });
+};
 
   // กรองรายการที่เลือกจริงเพื่อนำมาแสดงในแถบสรุป
-  const cartItems = equipments
-    .filter(e => selectedEquips[e.id] > 0)
-    .map(e => ({ ...e, qty: selectedEquips[e.id] }));
-
-  const equipTotal = cartItems.reduce((sum, item) => sum + (item.price_per_unit * item.qty), 0);
+  // const cartItems = equipments
+  //   .filter(e => selectedEquips[e.id] > 0)
+  //   .map(e => ({ ...e, qty: selectedEquips[e.id] }));
+  const cartItems = Object.values(selectedEquips).filter(i => i.qty > 0);
+  // const equipTotal = cartItems.reduce((sum, item) => sum + (item.price_per_unit * item.qty), 0);
+  const equipTotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.qty,
+    0
+  );
   const grandTotal = (courtAmount || 0) + equipTotal;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -390,7 +416,10 @@ export default function BorrowPage() {
                   {/* <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button> */}
                   <button onClick={() => updateQuantity(item, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button>
 
-                  <span className="w-4 text-center font-bold">{selectedEquips[item.id] || 0}</span>
+                  {/* <span className="w-4 text-center font-bold">{selectedEquips[item.id] || 0}</span> */}
+                  <span className="w-4 text-center font-bold">
+                    {selectedEquips[item.id]?.qty || 0}
+                  </span>
                   {/* <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button> */}
                   <button onClick={() => updateQuantity(item, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button>
 
@@ -430,13 +459,22 @@ export default function BorrowPage() {
               )}
 
               {/* รายการอุปกรณ์ที่เลือก */}
-              {cartItems.map(item => (
+              {/* {cartItems.map(item => (
                 <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
                   <p className="text-gray-600">{item.name} <span className="font-bold text-gray-900">x{item.qty}</span></p>
                   <p className="font-bold text-gray-800">฿{(item.price_per_unit * item.qty).toLocaleString()}</p>
                 </div>
+              ))} */}
+              {cartItems.map(item => (
+                <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
+                  <p className="font-bold text-gray-900">
+                    {item.name} <span className="font-bold">x{item.qty}</span>
+                  </p>
+                  <p className="font-bold">
+                    ฿{(item.price * item.qty).toLocaleString()}
+                  </p>
+                </div>
               ))}
-
               {cartItems.length === 0 && !courtData && (
                 <p className="text-center text-gray-400 py-10 italic">ยังไม่มีรายการที่เลือก</p>
               )}

@@ -238,42 +238,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
 
 const AdminDashboard = () => {
-  // const [pendingBookings] = useState([
-  //   { id: 101, user: "Jane Doe", email: "fadfa@gmail.com", type: "Badminton", court: "Badminton Court 1", time: "12.00-14.00", status: "Paid" },
-  //   { id: 102, user: "Mom Jokmok", email: "ngnen@gmail.com", type: "Football", court: "Field 1", time: "12.00-15.00", status: "Unpaid" },
-  //   { id: 103, user: "Teng Tedteng", email: "ruruhg@gmail.com", type: "Basketball", court: "Basketball Court 1", time: "13.00-15.00", status: "Awaiting" },
-  //   { id: 104, user: "Nong Chachacha", email: "uhruuhni11@gmail.com", type: "Football", court: "Field 2", time: "18.00-21.00", status: "Paid" },
-  // ]);
   const [pendingBookings, setPendingBookings] = useState([]);
-//   const fetchBookings = async () => {
-//   const { data, error } = await supabase
-//     .from("bookings")
-//     .select(`
-//       id,
-//       booking_date,
-//       receipt_url,
-//       status,
-//       users ( username, email ),
-//       courts ( name, category )
-//     `)
-//     .order("created_at", { ascending: false });
-
-//   if (!error && data) {
-//     setPendingBookings(
-//       data.map(b => ({
-//         id: b.id,
-//         user: b.users?.username ?? "-",
-//         email: b.users?.email ?? "-",
-//         type: b.courts?.category ?? "-",
-//         court: b.courts?.name ?? "-",
-//         time: b.booking_date,
-//         receipt_url: b.receipt_url,
-//         status: b.status
-//       }))
-//     );
-//   }
-// };
-const fetchBookings = async () => {
+  const fetchBookings = async () => {
   const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await supabase
@@ -304,71 +270,6 @@ const fetchBookings = async () => {
     );
   }
 };
-//   useEffect(() => {
-//   const fetchBookings = async () => {
-//     const { data, error } = await supabase
-//     .from("bookings")
-//     .select(`
-//       id,
-//       booking_date,
-//       receipt_url,
-//       status,
-      
-//       users (
-//         username,
-//         email
-//       ),
-//       courts (
-//         name,
-//         category
-//       )
-        
-//     `)
-//     .order("created_at", { ascending: false });
-
-//     if (!error && data) {
-//       setPendingBookings(
-//         data.map(b => ({
-//           id: b.id,
-//           user: b.users?.username ?? "-",
-//           email: b.users?.email ?? "-",
-//           type: b.courts?.category ?? "-",
-//           court: b.courts?.name ?? "-",
-//           time: b.booking_date,
-//           receipt_url: b.receipt_url,
-//           status: b.status
-//         }))
-//       );
-//     }
-//   };
-
-//   fetchBookings();
-// }, []);
-// useEffect(() => {
-//   // โหลดข้อมูลครั้งแรก
-//   fetchBookings();
-
-//   // subscribe realtime
-//   const channel = supabase
-//     .channel("admin-bookings-realtime")
-//     .on(
-//       "postgres_changes",
-//       {
-//         event: "*", // INSERT | UPDATE | DELETE
-//         schema: "public",
-//         table: "bookings"
-//       },
-//       (payload) => {
-//         console.log("Realtime change:", payload);
-//         fetchBookings(); // รีโหลดข้อมูลทุกครั้งที่มีการเปลี่ยน
-//       }
-//     )
-//     .subscribe();
-
-//   return () => {
-//     supabase.removeChannel(channel);
-//   };
-// }, []);
 const navigate = useNavigate();
 const handleLogout = async () => {
   await supabase.auth.signOut();
@@ -487,7 +388,9 @@ const fetchStats = async () => {
   const { data: courtsData } = await supabase
     .from("bookings")
     .select("court_id")
-    .eq("booking_date", today);
+    .eq("booking_date", today)
+    .not("court_id", "is", null)
+    .in("status", ["paid", "returned"]);
 
   setStats({
     waiting: waiting ?? 0,
@@ -577,42 +480,7 @@ const updateBookingStatus = async (bookingId, newStatus) => {
 };
   return (
     <div className="flex min-h-screen bg-white">
-      {/* 1. Sidebar แบบในภาพ - เน้นความเรียบง่าย */}
-      {/* <aside className="w-64 bg-white border-r border-gray-100 p-6 hidden md:flex flex-col sticky top-0 h-screen">
-        <div className="flex flex-col items-center mb-10">
-          <img src="https://i.ibb.co/L9H8GjB/sportgo-logo.png" alt="Logo" className="w-16 mb-4" />
-          <div className="flex gap-3 text-gray-400">
-            <button className="hover:text-teal-500">👤</button>
-            <button className="hover:text-teal-500">⚙️</button>
-            <button className="relative hover:text-teal-500">
-              🔔 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] px-1 rounded-full">9</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="relative mb-8">
-          <input type="text" placeholder="Search for..." className="w-full bg-gray-50 border-none rounded-lg py-2 px-10 text-xs outline-none" />
-          <span className="absolute left-3 top-2 text-gray-300">🔍</span>
-        </div>
-
-        <nav className="space-y-1 flex-grow">
-          <Link to="/admin" className="flex items-center gap-3 py-2 px-4 text-gray-800 font-bold bg-gray-50 rounded-lg text-sm">
-            📊 Dashboard
-          </Link>
-          <Link to="/admin/courts" className="flex items-center gap-3 py-2 px-4 text-gray-400 hover:text-gray-800 text-sm">
-            🏟️ Manage Court
-          </Link>
-          <Link to="#" className="flex items-center gap-3 py-2 px-4 text-gray-400 hover:text-gray-800 text-sm">
-            🏐 Manage Equipment
-          </Link>
-        </nav>
-
-        <div className="mt-auto">
-          <p className="text-[10px] font-bold text-gray-300 uppercase mb-2">Account</p>
-          <Link to="/" className="text-red-500 text-xs font-bold px-4">Logout</Link>
-        </div>
-      </aside> */}
-
+      
       {/* 2. Main Content */}
       <main className="flex-1 p-10 bg-[#FAFAFA]">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Dashboard</h1>
@@ -633,7 +501,7 @@ const updateBookingStatus = async (bookingId, newStatus) => {
               val: `฿${stats.todayRevenue.toLocaleString()}`
             },
             {
-              label: "สนามที่ถูกจอง",
+              label: "สนามที่ถูกจองวันนี้",
               val: stats.bookedCourts
             }
           ].map((card, idx) => (

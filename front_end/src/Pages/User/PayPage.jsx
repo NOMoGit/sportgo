@@ -201,10 +201,10 @@ export default function PayPage() {
 
              <div className="w-full">
                <label className="block w-full cursor-pointer group">
-                 <div className="flex items-center justify-center w-full h-14 px-4 transition bg-white border-2 border-gray-200 border-dashed rounded-2xl appearance-none cursor-pointer hover:border-teal-500 focus:outline-none">
+                 <div className="flex items-center justify-center w-full h-14 px-4 transition bg-white border-2 border-gray-200 border-dashed rounded-2xl appearance-none cursor-pointer hover:border-blue-500 focus:outline-none">
                     <span className="flex items-center space-x-2">
-                      <svg className="w-6 h-6 text-gray-400 group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                      <span className="font-medium text-gray-600 group-hover:text-teal-600">
+                      <svg className="w-6 h-6 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                      <span className="font-medium text-gray-600 group-hover:text-blue-600">
                         {file ? file.name : "คลิกเพื่อแนบสลิปโอนเงิน"}
                       </span>
                     </span>
@@ -223,7 +223,7 @@ export default function PayPage() {
                onClick={handleConfirmPayment} 
                disabled={loading} 
                className={`w-full mt-6 py-4 rounded-2xl font-bold text-lg text-white shadow-lg transition-all ${
-                 loading ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-black hover:scale-[1.02]"
+                 loading ? "bg-[#003E77] cursor-not-allowed" : "bg-[#003E77] hover:bg-blue-700 hover:scale-[1.02]"
                }`}
              >
                {loading ? "กำลังดำเนินการ..." : "ยืนยันการชำระเงิน"}

@@ -203,7 +203,7 @@ export default function LoginPage({ setUser }) {
         
         {/* 🔹 Login Card */}
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-          <h2 className="text-5xl font-bold text-center">Login</h2>
+          <h2 className="text-4xl font-bold text-center">Login</h2>
           <p className="text-center text-gray-400 mb-6">
             Sign in to continue
           </p>
@@ -213,6 +213,7 @@ export default function LoginPage({ setUser }) {
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
+            <label className="">Email</label>
             <input
               type="email"
               placeholder="Email"
@@ -221,6 +222,7 @@ export default function LoginPage({ setUser }) {
               className="w-full p-3 shadow-sm shadow-md border rounded-lg outline-none"
               required
             />
+            <label className="">Password</label>
             <input
               type="password"
               placeholder="Password"

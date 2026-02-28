@@ -202,7 +202,7 @@ export default function BorrowPage() {
             <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">เลือกยืมอุปกรณ์</h1>
             <div className="flex overflow-x-auto gap-2 mt-4 no-scrollbar">
               {categories.map(cat => (
-                <button key={cat} onClick={() => setFilter(cat)} className={`px-5 py-2 rounded-full font-bold whitespace-nowrap transition-all ${filter === cat ? "bg-teal-600 text-white shadow-md" : "bg-white text-gray-600 shadow-sm"}`}>{cat}</button>
+                <button key={cat} onClick={() => setFilter(cat)} className={`px-5 py-2 rounded-full font-bold whitespace-nowrap transition-all ${filter === cat ? "bg-[#003E77] text-white shadow-md" : "bg-white text-gray-600 shadow-sm"}`}>{cat}</button>
               ))}
             </div>
           </header>
@@ -242,21 +242,21 @@ export default function BorrowPage() {
             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
               {/* ถ้ามีการจองสนามมา ให้โชว์ค่าสนาม */}
               {courtData && (
-                <div className="flex justify-between items-start text-sm bg-teal-50 p-3 rounded-xl border border-teal-100">
+                <div className="flex justify-between items-start text-sm bg-[#003E77]/20 p-3 rounded-xl border border-teal-100">
                   <div>
-                    <p className="font-bold text-teal-800">สนาม: {courtData.name}</p>
+                    <p className="font-bold text-gray-700">สนาม: {courtData.name}</p>
                     {/* <p className="text-xs text-teal-600">{bookingTimes.length} ชม. ({bookingTimes.join(' , ')})</p> */}
-                    <div className="text-xs text-teal-600 flex flex-wrap gap-1 items-center">
+                    <div className="text-xs text-gray-700 flex flex-wrap gap-1 items-center">
                       <span className="font-bold">เวลา:</span>
                       {formatTimeRange(bookingTimes).split(', ').map((range, index) => (
-                        <span key={index} className="bg-teal-200/50 px-2 py-0.5 rounded-md">
+                        <span key={index} className="bg-[#003E77]/50 px-2 py-0.5 rounded-md text-white">
                           {range}
                         </span>
                       ))}
                       <span className="ml-1 text-[10px] opacity-70">({bookingTimes.length} ชม.)</span>
                     </div>
                   </div>
-                  <p className="font-bold text-teal-800">฿{courtAmount.toLocaleString()}</p>
+                  <p className="font-bold text-gray-700">฿{courtAmount.toLocaleString()}</p>
 
                 </div>
               )}
@@ -311,7 +311,7 @@ export default function BorrowPage() {
                   }
                 });
               }}
-              className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-2xl font-bold mt-6 transition-all disabled:bg-gray-200"
+              className="w-full bg-[#003E77] hover:bg-blue-700 text-white py-4 rounded-2xl font-bold mt-6 transition-all disabled:bg-gray-200"
             >
               ไปหน้าชำระเงิน
             </button>

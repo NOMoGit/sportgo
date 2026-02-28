@@ -42,31 +42,31 @@ const AdminDashboard = () => {
     //   }))
     // );
     setPendingBookings(
-  data.map(b => {
-    const equipmentNames =
-      b.booking_equipments && b.booking_equipments.length > 0
-        ? b.booking_equipments
-            .map(e => `${e.equipments?.name} x${e.quantity}`)
-            .join(", ")
-        : null;
+      data.map(b => {
+        const equipmentNames =
+          b.booking_equipments && b.booking_equipments.length > 0
+            ? b.booking_equipments
+                .map(e => `${e.equipments?.name} x${e.quantity}`)
+                .join(", ")
+            : null;
 
-    return {
-      id: b.id,
-      user: b.users?.username ?? "-",
-      email: b.users?.email ?? "-",
+        return {
+          id: b.id,
+          user: b.users?.username ?? "-",
+          email: b.users?.email ?? "-",
 
-      // ⭐ ตรงนี้
-      type: b.courts
-        ? b.courts.category
-        : equipmentNames || "Borrow equipment",
+          // ⭐ ตรงนี้
+          type: b.courts
+            ? b.courts.category
+            : equipmentNames || "Borrow equipment",
 
-      court: b.courts?.name ?? "-",
-      time: b.booking_date,
-      receipt_url: b.receipt_url,
-      status: b.status
-    };
-  })
-);
+          court: b.courts?.name ?? "-",
+          time: b.booking_date,
+          receipt_url: b.receipt_url,
+          status: b.status
+        };
+      })
+    );
   }
 };
 const navigate = useNavigate();

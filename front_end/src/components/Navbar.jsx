@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import { supabase } from "../supabaseClient";
-import logo from "../assets/logo.png";
-
+import logo from "../assets/logologin.png";
 export default function Navbar({ user, setUser }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -38,7 +37,7 @@ export default function Navbar({ user, setUser }) {
 
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50 ">
+    <nav className="bg-[#003E77] shadow-sm sticky top-0 z-50 ">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 justify-between">
         <div className="flex justify-between h-16 items-center ">
           {/* Logo */}
@@ -57,24 +56,24 @@ export default function Navbar({ user, setUser }) {
           <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-500">
             {user?.role === "admin" && isAdminPath ? (
               <>
-                <Link to="/admin" className="">
+                <Link to="/admin" className="text-white">
                   DASHBOARD
                 </Link>
-                <Link to="/admin/courts">MANAGE COURTS</Link>
-                <Link to="/admin/borrow">MANAGE BORROW</Link>
-                <Link to="/admin/equipments">MANAGE EQUIPMENTS</Link>
+                <Link to="/admin/courts" className="text-white">MANAGE COURTS</Link>
+                <Link to="/admin/borrow" className="text-white">MANAGE BORROW</Link>
+                <Link to="/admin/equipments" className="text-white">MANAGE EQUIPMENTS</Link>
                 <Link
-                  to="/admin/history"
+                  to="/admin/history" className="text-white"
                 >
                 BOOKING HISTORY
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/">HOME</Link>
-                <Link to="/booking">RESERVATION</Link>
-                <Link to="/history">MY HISTORY</Link>
-                <Link to="/borrow">BORROW</Link>
+                <Link to="/" className="text-white">HOME</Link>
+                <Link to="/booking" className="text-white">RESERVATION</Link>
+                <Link to="/history" className="text-white">MY HISTORY</Link>
+                <Link to="/borrow" className="text-white">BORROW</Link>
               </>
             )}
           </div>
@@ -84,10 +83,10 @@ export default function Navbar({ user, setUser }) {
             {isLoggedIn ? (
               <div className="flex items-center gap-3 border-l pl-4">
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-gray-400 uppercase">
+                  <p className="text-[10px] font-black text-gray-400 uppercase text-black ">
                     {user.role}
                   </p>
-                  <p className="text-xs font-bold text-gray-800">
+                  <p className="text-xs font-bold text-gray-800 text-white">
                     {user.username || user.email}
                   </p>
                 </div>

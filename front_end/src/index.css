@@ -1,1 +1,7 @@
 @import "tailwindcss";
+.fc {
+  width: 100% !important;
+}
+.fc-day-today {
+  background-color: #DBEAFE !important; 
+}

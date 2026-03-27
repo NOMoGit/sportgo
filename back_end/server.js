@@ -380,7 +380,7 @@ app.get('/api/booked-slots', async (req, res) => {
 // --- บันทึกการจอง (Booking Transaction) ---
 app.post('/api/create-booking', upload.single('slip_image'), async (req, res) => {
   try {
-    const { user_id, court_id, total_price, bookingDate } = req.body;
+    const { user_id, court_id, total_price, bookingDate, booking_id } = req.body;
 
     const bookingTimes = JSON.parse(req.body.bookingTimes || '[]');
     const selectedEquipments = JSON.parse(req.body.selectedEquipments || '[]');
@@ -392,6 +392,29 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
 
     const fileName = `receipts/${Date.now()}-${slipFile.originalname}`;
 
+    // const { error: uploadError } = await supabase.storage
+    //   .from('receipts')
+    //   .upload(fileName, slipFile.buffer, {
+    //     contentType: slipFile.mimetype
+    //   });
+
+    // if (uploadError) throw uploadError;
+    // const { error: updateError } = await supabase
+    //   .from('bookings')
+    //   .update({
+    //     user_id,
+    //     total_price,
+    //     receipt_url: data.publicUrl,
+    //     status: 'paid'
+    //   })
+    //   .eq('id', booking_id);
+
+    // if (updateError) throw updateError;
+
+    // const { data } = supabase.storage
+    //   .from('receipts')
+    //   .getPublicUrl(fileName);
+    // 1. upload รูปก่อน
     const { error: uploadError } = await supabase.storage
       .from('receipts')
       .upload(fileName, slipFile.buffer, {
@@ -400,44 +423,59 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage
+    // 2. เอา public URL
+    const { data: publicData } = supabase.storage
       .from('receipts')
       .getPublicUrl(fileName);
 
-    // บันทึก booking
-    const { data: booking, error: bError } = await supabase
+    // 3. update booking
+    const { error: updateError } = await supabase
       .from('bookings')
-      .insert([{
+      .update({
         user_id,
-        court_id,
         total_price,
-        booking_date: bookingDate,
-        receipt_url: data.publicUrl,
-        status: 'pending',
-        
-        
-      }])
-      .select()
-      .single();
+        receipt_url: publicData.publicUrl,
+        status: 'paid'
+      })
+      .eq('id', booking_id);
 
-    if (bError) throw bError;
+    if (updateError) throw updateError;
+
+    // บันทึก booking
+    // const { data: booking, error: bError } = await supabase
+    //   .from('bookings')
+    //   .insert([{
+    //     user_id,
+    //     court_id,
+    //     total_price,
+    //     booking_date: bookingDate,
+    //     receipt_url: data.publicUrl,
+    //     status: 'pending',
+        
+        
+    //   }])
+    //   .select()
+    //   .single();
+
+    // if (bError) throw bError;
 
     // 2. บันทึกช่วงเวลาลง booking_time_slots พร้อมระบุวันที่และรหัสสนาม
-    if (bookingTimes && bookingTimes.length > 0) {
-      const timeData = bookingTimes.map(time => ({
-        booking_id: booking.id,
-        court_id: court_id || null,       // ระบุสนามเพื่อให้เช็คง่ายขึ้น
-        booking_date: bookingDate, // ระบุวันที่เพื่อให้เช็คง่ายขึ้น
-        time_slot: time
-      }));
-      const { error: tError } = await supabase.from('booking_time_slots').insert(timeData);
-      if (tError) throw tError;
-    }
+    // if (bookingTimes && bookingTimes.length > 0) {
+    //   const timeData = bookingTimes.map(time => ({
+    //     booking_id: booking.id,
+    //     court_id: court_id || null,       // ระบุสนามเพื่อให้เช็คง่ายขึ้น
+    //     booking_date: bookingDate, // ระบุวันที่เพื่อให้เช็คง่ายขึ้น
+    //     time_slot: time
+    //   }));
+    //   const { error: tError } = await supabase.from('booking_time_slots').insert(timeData);
+    //   if (tError) throw tError;
+    // }
 
     // 3. บันทึกรายการอุปกรณ์ลง booking_equipments
     if (selectedEquipments && selectedEquipments.length > 0) {
       const equipData = selectedEquipments.map(item => ({
-        booking_id: booking.id,
+        // booking_id: booking.id,
+        booking_id: booking_id,
         equipment_id: item.id,
         quantity: item.qty // ปรับเป็น item.qty ตามที่คุณส่งมาจาก BorrowPage
       }));
@@ -445,7 +483,7 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
       if (eError) throw eError;
     }
 
-    res.status(200).json({ success: true, message: "บันทึกการจองเรียบร้อย", booking_id: booking.id });
+    res.status(200).json({ success: true, message: "บันทึกการจองเรียบร้อย", booking_id: booking_id });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -483,6 +521,82 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post('/api/hold-booking', async (req, res) => {
+  try {
+    // const { court_id, booking_date, booking_times } = req.body;
+    const { court_id, booking_date, booking_times, total_price } = req.body;
+
+    if (!court_id || !booking_date || !booking_times?.length) {
+      return res.status(400).json({ success: false, message: "ข้อมูลไม่ครบ" });
+    }
+
+    // 🔒 1. เช็คว่ามีคนจอง slot นี้อยู่ไหม
+    const { data: existing, error: checkError } = await supabase
+      .from('booking_time_slots')
+      // .select('time_slot')
+      .select(`
+        time_slot,
+        bookings!inner(status, hold_until)
+      `)
+      .eq('court_id', court_id)
+      .eq('booking_date', booking_date)
+      .in('time_slot', booking_times)
+      .in('bookings.status', ['pending', 'paid', 'borrowed']);
+
+    if (checkError) throw checkError;
+
+    if (existing.length > 0) {
+      return res.json({
+        success: false,
+        message: "ช่วงเวลานี้ถูกจองแล้ว"
+      });
+    }
+
+    // 🔒 2. สร้าง booking (pending)
+    const { data: booking, error: bError } = await supabase
+      .from('bookings')
+      .insert([{
+        court_id,
+        booking_date,
+        total_price,
+        status: 'pending',
+        hold_until: new Date(Date.now() + 5 * 60 * 1000) // 5 นาที
+      }])
+      .select()
+      .single();
+
+    if (bError) throw bError;
+
+    // 🔒 3. insert time slots
+    const timeData = booking_times.map(time => ({
+      booking_id: booking.id,
+      court_id,
+      booking_date,
+      time_slot: time
+    }));
+
+    const { error: tError } = await supabase
+      .from('booking_time_slots')
+      .insert(timeData);
+
+    if (tError) throw tError;
+
+    return res.json({
+      success: true,
+      booking_id: booking.id
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

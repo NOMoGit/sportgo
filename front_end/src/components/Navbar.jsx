@@ -10,7 +10,8 @@ export default function Navbar({ user, setUser }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isLoggedIn = !!user;
+  // const isLoggedIn = !!user;
+  const isLoggedIn = !!user && !!user.email;
   const isAdminPath = location.pathname.startsWith("/admin");
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);

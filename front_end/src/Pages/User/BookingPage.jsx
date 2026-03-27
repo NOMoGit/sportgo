@@ -1,170 +1,4 @@
 
-// import React, { useState, useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { supabase } from "../../supabaseClient";
-
-// const BookingPage = () => {
-//   const navigate = useNavigate();
-//   const [filter, setFilter] = useState("ทั้งหมด");
-//   const [selectedCourt, setSelectedCourt] = useState(null); 
-//   const [selectedTimes, setSelectedTimes] = useState([]); 
-//   const [courts, setCourts] = useState([]);
-  
-//   // --- ส่วนที่เพิ่มใหม่: ระบบจองล่วงหน้า ---
-//   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-//   const [bookedTimes, setBookedTimes] = useState([]); // เก็บเวลาที่ถูกจองแล้วในวันที่เลือก
-
-//   // ดึงข้อมูลสนามทั้งหมด
-//   // useEffect(() => {
-//   //   fetch('http://localhost:8000/api/courts')
-//   //     .then(res => res.json())
-//   //     .then(data => {
-//   //       const formatted = data
-//   //       .filter(item => item.is_available !== false) // ❗ เพิ่ม
-//   //       .map(item => ({
-//   //         id: item.id,
-//   //         name: item.name,
-//   //         category: item.category,
-//   //         price: parseFloat(item.price_per_hour),
-//   //         image: item.image_url
-//   //       }));
-//   //       setCourts(formatted);
-//   //     })
-//   //     .catch(err => console.error("Fetch error:", err));
-//   // }, []);
-//   useEffect(() => {
-//   const fetchCourts = async () => {
-//     const { data, error } = await supabase
-//       .from("courts")
-//       .select("*");
-
-//     if (!error && data) {
-//       const formatted = data
-//         .filter(item => item.is_available !== false)
-//         .map(item => ({
-//           id: item.id,
-//           name: item.name,
-//           category: item.category,
-//           price: parseFloat(item.price_per_hour),
-//           image: item.image_url
-//         }));
-
-//       setCourts(formatted);
-//     }
-//   };
-
-//   fetchCourts();
-
-//   const channel = supabase
-//     .channel("realtime-user-courts")
-//     .on(
-//       "postgres_changes",
-//       {
-//         event: "*",
-//         schema: "public",
-//         table: "courts",
-//       },
-//       () => {
-//         fetchCourts(); // reload ใหม่เมื่อมีการ update
-//       }
-//     )
-//     .subscribe();
-
-//   return () => {
-//     supabase.removeChannel(channel);
-//   };
-// }, []);
-  
-//   // --- ส่วนที่เพิ่มใหม่: ดึงสถานะสนามว่างตามวันที่และสนามที่เลือก ---
-//   useEffect(() => {
-//   //   if (selectedCourt) {
-//   //     fetch(`http://localhost:8000/api/booked-slots?court_id=${selectedCourt.id}&date=${selectedDate}`)
-//   //       .then(res => res.json())
-//   //       .then(data => {
-//   //         setBookedTimes(data); // data คือ Array ของ time_slot ที่ไม่ว่าง
-//   //         setSelectedTimes([]); // ล้างเวลาที่เคยเลือกไว้เมื่อเปลี่ยนวันที่หรือสนาม
-//   //       })
-//   //       .catch(err => console.error("Error fetching booked slots:", err));
-//   //   }
-//   // }, [selectedCourt, selectedDate]);
-//     if (!selectedCourt) return;
-    
-//     const fetchBookedSlots = async () => {
-//         const res = await fetch(
-//           `http://localhost:8000/api/booked-slots?court_id=${selectedCourt.id}&date=${selectedDate}`
-//         );
-//         const data = await res.json();
-//         setBookedTimes(data);
-//         setSelectedTimes([]);
-//       };
-
-//       fetchBookedSlots(); // ✅ สำคัญมาก
-
-//       const channel = supabase
-//         .channel(`booking-slots-${selectedCourt.id}`)
-//         .on(
-//           'postgres_changes',
-//           {
-//             event: '*',
-//             schema: 'public',
-//             table: 'booking_time_slots'
-//           },
-//           () => {
-//             fetchBookedSlots(); // realtime update
-//           }
-//         )
-//         .subscribe();
-
-//       return () => {
-//         supabase.removeChannel(channel);
-//       };
-//   }, [selectedCourt, selectedDate]);
-
-//   const timeSlots = [
-//     "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00", 
-//     "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", 
-//     "17:00 - 18:00", "18:00 - 19:00", "19:00 - 20:00"
-//   ];
-
-//   const categories = [
-//     { name: "ทั้งหมด", icon: "🏠" }, { name: "ฟุตบอล", icon: "⚽" }, 
-//     { name: "แบดมินตัน", icon: "🏸" }, { name: "บาสเกตบอล", icon: "🏀" }, 
-//     { name: "ปิงปอง", icon: "🏓" }, { name: "วอลเลย์บอล", icon: "🏐" }
-//   ];
-
-//   const filteredCourts = filter === "ทั้งหมด" ? courts : courts.filter(c => c.category === filter);
-
-//   const handleTimeSelect = (time) => {
-//     setSelectedTimes(prev => prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]);
-//   };
-
-//   const totalPrice = selectedCourt ? selectedTimes.length * selectedCourt.price : 0;
-
-//   const confirmBooking = () => {
-//     if (selectedTimes.length === 0) {
-//       alert("กรุณาเลือกเวลา");
-//       return;
-//     }
-//     if (bookedTimes.some(t => selectedTimes.includes(t))) {
-//       alert("มีบางช่วงเวลาถูกจองไปแล้ว");
-//       return;
-//     }
-//     if (selectedCourt && selectedTimes.length > 0) {
-//       navigate('/borrow', { 
-//         state: { 
-//           courtData: selectedCourt, 
-//           bookingTimes: selectedTimes, 
-//           bookingDate: selectedDate, // ส่งวันที่ที่เลือกไปด้วย
-//           courtAmount: totalPrice 
-//         } 
-//       });
-//     }
-//     // navigate('/borrow', { ... });
-//   };
-
-//   // คำนวณวันที่จองล่วงหน้าสูงสุด (วันนี้ + 6 วัน = 7 วัน)
-//   const today = new Date().toISOString().split('T')[0];
-//   const maxDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "../../supabaseClient";
@@ -345,25 +179,67 @@ const BookingPage = () => {
       ? selectedTimes.length * selectedCourt.price 
       : 0;
 
-  const confirmBooking = () => {
+  // const confirmBooking = () => {
+  //   if (selectedTimes.length === 0) {
+  //     alert("กรุณาเลือกเวลา");
+  //     return;
+  //   }
+
+  //   if (bookedTimes.some(t => selectedTimes.includes(t))) {
+  //     alert("มีบางช่วงเวลาถูกจองไปแล้ว");
+  //     return;
+  //   }
+
+  //   navigate('/borrow', { 
+  //     state: { 
+  //       courtData: selectedCourt, 
+  //       bookingTimes: selectedTimes, 
+  //       bookingDate: selectedDate,
+  //       courtAmount: totalPrice 
+  //     } 
+  //   });
+  // };
+  const confirmBooking = async () => {
     if (selectedTimes.length === 0) {
       alert("กรุณาเลือกเวลา");
       return;
     }
 
-    if (bookedTimes.some(t => selectedTimes.includes(t))) {
-      alert("มีบางช่วงเวลาถูกจองไปแล้ว");
-      return;
-    }
+    try {
+      const res = await fetch("http://localhost:8000/api/hold-booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          court_id: selectedCourt.id,
+          booking_date: selectedDate,
+          booking_times: selectedTimes,
+          total_price: totalPrice
+        })
+      });
 
-    navigate('/borrow', { 
-      state: { 
-        courtData: selectedCourt, 
-        bookingTimes: selectedTimes, 
-        bookingDate: selectedDate,
-        courtAmount: totalPrice 
-      } 
-    });
+      const result = await res.json();
+
+      if (!result.success) {
+        alert(result.message || "ช่วงเวลานี้ถูกจองแล้ว");
+        return;
+      }
+
+      // ✅ ได้ booking_id กลับมา
+      navigate('/borrow', {
+        state: {
+          bookingId: result.booking_id, // 🔥 สำคัญ
+          courtData: selectedCourt,
+          bookingTimes: selectedTimes,
+          bookingDate: selectedDate,
+          courtAmount: totalPrice
+        }
+      });
+
+    } catch (err) {
+      alert("เชื่อมต่อ server ไม่ได้");
+    }
   };
 
   const today = new Date().toISOString().split('T')[0];

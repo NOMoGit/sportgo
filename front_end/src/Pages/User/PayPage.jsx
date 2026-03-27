@@ -12,6 +12,7 @@ export default function PayPage() {
   
   // รับข้อมูลจากหน้า BorrowPage
   const { 
+    bookingId,
     courtData = null, 
     bookingTimes = [], 
     courtAmount = 0, 
@@ -61,6 +62,7 @@ export default function PayPage() {
     // เตรียมข้อมูลแบบ FormData (สำหรับส่งไฟล์รูปภาพ)
     const formData = new FormData();
     formData.append('user_id', user.id);
+    formData.append('booking_id', bookingId);
     // formData.append('court_id', courtData?.id);
     if (courtData?.id) {
       formData.append('court_id', courtData.id);

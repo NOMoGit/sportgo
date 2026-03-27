@@ -428,19 +428,35 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
       .from('receipts')
       .getPublicUrl(fileName);
 
+    // // 3. update booking
+    // const { error: updateError } = await supabase
+    //   .from('bookings')
+    //   .update({
+    //     user_id,
+    //     total_price,
+    //     receipt_url: publicData.publicUrl,
+    //     status: 'waiting'
+    //   })
+    //   .eq('id', booking_id);
+
+    // if (updateError) throw updateError;
     // 3. update booking
-    const { error: updateError } = await supabase
+    const { data: updatedBooking, error: updateError } = await supabase
       .from('bookings')
       .update({
         user_id,
         total_price,
         receipt_url: publicData.publicUrl,
-        status: 'paid'
+        status: 'waiting'
       })
-      .eq('id', booking_id);
+      .eq('id', booking_id)
+      .select()    // ต้องใส่ select() ถึงจะได้ data
+      .single();   // ใช้ single() เพราะ update ทีละ 1 row
 
     if (updateError) throw updateError;
 
+    console.log("🔥 UPDATED BOOKING:", updatedBooking);
+    
     // บันทึก booking
     // const { data: booking, error: bError } = await supabase
     //   .from('bookings')
@@ -482,13 +498,13 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
       const { error: eError } = await supabase.from('booking_equipments').insert(equipData);
       if (eError) throw eError;
     }
-
+    
     res.status(200).json({ success: true, message: "บันทึกการจองเรียบร้อย", booking_id: booking_id });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
+  
 // --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
   const { username, email, password } = req.body;
@@ -522,38 +538,165 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// app.post('/api/hold-booking', async (req, res) => {
+//   try {
+//     // const { court_id, booking_date, booking_times } = req.body;
+//     const { court_id, booking_date, booking_times, total_price } = req.body;
+
+//     if (!court_id || !booking_date || !booking_times?.length) {
+//       return res.status(400).json({ success: false, message: "ข้อมูลไม่ครบ" });
+//     }
+
+//     // 🔒 1. เช็คว่ามีคนจอง slot นี้อยู่ไหม
+//     const { data: existing, error: checkError } = await supabase
+//       .from('booking_time_slots')
+//       // .select('time_slot')
+//       .select(`
+//         time_slot,
+//         bookings!inner(status, hold_until)
+//       `)
+//       .eq('court_id', court_id)
+//       .eq('booking_date', booking_date)
+//       .in('time_slot', booking_times)
+//       // .in('bookings.status', ['pending', 'paid', 'borrowed']);
+//     //   .or(`
+//     //     bookings.status.eq.paid,
+//     //     bookings.status.eq.borrowed,
+//     //     and(bookings.status.eq.pending,bookings.hold_until.gt.${now})
+//     //   `);
+
+//     // if (checkError) throw checkError;
+
+//     // if (existing.length > 0) {
+//     //   return res.json({
+//     //     success: false,
+//     //     message: "ช่วงเวลานี้ถูกจองแล้ว"
+//     //   });
+//     // }
+//       if (checkError) throw checkError;
+
+//     // 🔥 filter ใน JS แทน SQL
+//     const blocked = existing.filter(item => {
+//       const booking = item.bookings;
+
+//       if (!booking) return false;
+
+//       // paid / borrowed = ล็อค
+//       if (booking.status === 'paid' || booking.status === 'borrowed') {
+//         return true;
+//       }
+
+//       // pending แต่ยังไม่หมดเวลา = ล็อค
+//       if (
+//         booking.status === 'pending' &&
+//         booking.hold_until &&
+//         booking.hold_until > now
+//       ) {
+//         return true;
+//       }
+
+//       return false;
+//     });
+
+//     if (blocked.length > 0) {
+//       return res.json({
+//         success: false,
+//         message: "ช่วงเวลานี้ถูกจองแล้ว"
+//       });
+//     }
+
+//     // 🔒 2. สร้าง booking (pending)
+//     const { data: booking, error: bError } = await supabase
+//       .from('bookings')
+//       .insert([{
+//         court_id,
+//         booking_date,
+//         total_price,
+//         status: 'pending',
+//         hold_until: new Date(Date.now() + 5 * 60 * 1000) // 5 นาที
+//       }])
+//       .select()
+//       .single();
+
+//     if (bError) throw bError;
+
+//     // 🔒 3. insert time slots
+//     const timeData = booking_times.map(time => ({
+//       booking_id: booking.id,
+//       court_id,
+//       booking_date,
+//       time_slot: time
+//     }));
+
+//     const { error: tError } = await supabase
+//       .from('booking_time_slots')
+//       .insert(timeData);
+
+//     if (tError) throw tError;
+
+//     return res.json({
+//       success: true,
+//       booking_id: booking.id
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({
+//       success: false,
+//       error: err.message
+//     });
+//   }
+// });
 app.post('/api/hold-booking', async (req, res) => {
   try {
-    // const { court_id, booking_date, booking_times } = req.body;
     const { court_id, booking_date, booking_times, total_price } = req.body;
 
     if (!court_id || !booking_date || !booking_times?.length) {
       return res.status(400).json({ success: false, message: "ข้อมูลไม่ครบ" });
     }
 
-    // 🔒 1. เช็คว่ามีคนจอง slot นี้อยู่ไหม
+    const now = new Date().toISOString(); // 🔥 ต้องมี
+
+    // 🔍 เช็ค slot
     const { data: existing, error: checkError } = await supabase
       .from('booking_time_slots')
-      // .select('time_slot')
       .select(`
         time_slot,
-        bookings!inner(status, hold_until)
+        bookings(status, hold_until)
       `)
       .eq('court_id', court_id)
       .eq('booking_date', booking_date)
-      .in('time_slot', booking_times)
-      .in('bookings.status', ['pending', 'paid', 'borrowed']);
+      .in('time_slot', booking_times);
 
     if (checkError) throw checkError;
 
-    if (existing.length > 0) {
+    const blocked = existing.filter(item => {
+      const booking = item.bookings;
+      if (!booking) return false;
+
+      if (booking.status === 'paid' || booking.status === 'borrowed' || booking.status === 'waiting') {
+        return true;
+      }
+
+      if (
+        booking.status === 'pending' &&
+        booking.hold_until &&
+        booking.hold_until > now
+      ) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (blocked.length > 0) {
       return res.json({
         success: false,
         message: "ช่วงเวลานี้ถูกจองแล้ว"
       });
     }
 
-    // 🔒 2. สร้าง booking (pending)
+    // ✅ สร้าง booking
     const { data: booking, error: bError } = await supabase
       .from('bookings')
       .insert([{
@@ -568,7 +711,7 @@ app.post('/api/hold-booking', async (req, res) => {
 
     if (bError) throw bError;
 
-    // 🔒 3. insert time slots
+    // ✅ insert slots
     const timeData = booking_times.map(time => ({
       booking_id: booking.id,
       court_id,
@@ -582,7 +725,7 @@ app.post('/api/hold-booking', async (req, res) => {
 
     if (tError) throw tError;
 
-    return res.json({
+    res.json({
       success: true,
       booking_id: booking.id
     });
@@ -597,6 +740,111 @@ app.post('/api/hold-booking', async (req, res) => {
 });
 
 
+app.get('/api/booked-slots', async (req, res) => {
+  const { court_id, date } = req.query;
+
+  try {
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('booking_time_slots')
+      .select(`
+        time_slot,
+        bookings(status, hold_until)
+      `)
+      .eq('court_id', court_id)
+      .eq('booking_date', date);
+
+    if (error) throw error;
+
+    // 🔥 filter เฉพาะ slot ที่ "ควรล็อค"
+    const booked = data.filter(item => {
+      const booking = item.bookings;
+      if (!booking) return false;
+
+      // ✅ จ่ายแล้ว → ล็อค
+      if (booking.status === 'paid' || booking.status === 'borrowed' || booking.status === 'waiting') {
+        return true;
+      }
+
+      // ✅ pending + ยังไม่หมดเวลา → ล็อค
+      if (
+        booking.status === 'pending' &&
+        booking.hold_until &&
+        booking.hold_until > now
+      ) {
+        return true;
+      }
+
+      return false;
+    });
+
+    res.json(booked.map(item => item.time_slot));
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// app.post('/api/cleanup-expired', async (req, res) => {
+//   try {
+//     const now = new Date().toISOString();
+
+//     const { error } = await supabase
+//       .from('bookings')
+//       .update({ status: ['cancelled','rejected'] })
+//       .eq('status', 'pending')
+//       .lt('hold_until', now);
+
+//     if (error) throw error;
+
+//     res.json({ success: true });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// 🔥 AUTO CLEANUP ทุก 1 นาที
+setInterval(async () => {
+  try {
+    const now = new Date().toISOString();
+
+    // 1. หา booking ที่หมดเวลา
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id')
+      // .eq('status', 'pending')
+      .in('status', ['pending'])
+      .lt('hold_until', now);
+
+    if (error) throw error;
+    if (!data || data.length === 0) return;
+
+    const ids = data.map(b => b.id);
+
+    console.log("🧹 Cleaning expired bookings:", ids);
+
+    // 🔥 2. ลบ time slots (สำคัญมากที่สุด)
+    const { error: deleteError } = await supabase
+      .from('booking_time_slots')
+      .delete()
+      .in('booking_id', ids);
+
+    if (deleteError) throw deleteError;
+
+    // 🔥 3. อัปเดต booking เป็น cancelled
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      
+      .in('id', ids);
+
+    if (updateError) throw updateError;
+
+  } catch (err) {
+    console.error("Cleanup error:", err.message);
+  }
+}, 60000); // ทุก 60 วินาที

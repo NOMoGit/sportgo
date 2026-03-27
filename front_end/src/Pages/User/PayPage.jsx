@@ -133,7 +133,7 @@ export default function PayPage() {
     if (currentRange) ranges.push(`${currentRange.start} - ${currentRange.end}`);
     return ranges.join(", ");
   };
-
+  console.log("bookingId:", bookingId);
   return (
     <div className="p-8 max-w-4xl mx-auto min-h-screen bg-gray-50">
       <h1 className="text-3xl font-black mb-6 text-gray-900">ชำระเงิน</h1>
@@ -233,5 +233,6 @@ export default function PayPage() {
           </div>
       </div>
     </div>
+    
   );
 }

@@ -412,7 +412,7 @@ const updateBookingStatus = async (bookingId, newStatus) => {
                     )}
                   </td> */}
                   <td className="p-4 text-center">
-                    {b.status === "pending" && (
+                    {b.status === "pending" || b.status === "waiting" && (
                       <div className="flex justify-center gap-2">
                         <button
                           onClick={() => updateBookingStatus(b.id, "paid")}

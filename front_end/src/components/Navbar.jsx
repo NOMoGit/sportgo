@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
@@ -84,16 +82,24 @@ export default function Navbar({ user, setUser }) {
             {isLoggedIn ? (
               <div className="flex items-center gap-3 border-l pl-4">
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-gray-400 uppercase text-black ">
-                    {user.role}
-                  </p>
-                  <p className="text-xs font-bold text-gray-800 text-white">
+                  <p className="text-[10px] font-black text-gray-400 uppercase">{user.role}</p>
+                  <p className="text-xs font-bold text-white">
                     {user.username || user.email}
                   </p>
                 </div>
+                
+                {/* แยกปุ่มตั้งค่าออกมาต่างหาก */}
+                <Link 
+                  to="/profile" 
+                  className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+                  title="Settings"
+                >
+                  <UserIcon size={18} />
+                </Link>
+
                 <button
                   onClick={handleLogout}
-                  className="bg-red-50 text-red-500 p-2 rounded-xl"
+                  className="bg-red-50 text-red-500 p-2 rounded-xl hover:bg-red-100 transition-colors"
                 >
                   <LogOut size={18} />
                 </button>
@@ -231,7 +237,7 @@ export default function Navbar({ user, setUser }) {
       </>
     )}
 
-    {isLoggedIn && (
+    {/* {isLoggedIn && (
       <div className="pt-6 border-t border-white/20">
         <div className="flex items-center gap-3 mb-4">
           <UserIcon size={18} />
@@ -246,6 +252,37 @@ export default function Navbar({ user, setUser }) {
         <button
           onClick={handleLogout}
           className="w-full bg-red-500 hover:bg-red-600 transition rounded-xl py-2 font-bold"
+        >
+          LOGOUT
+        </button>
+      </div>
+    )} */}
+    {isLoggedIn && (
+      <div className="pt-6 border-t border-white/20 space-y-2">
+        {/* แสดงชื่อเฉยๆ (กดไม่ได้) */}
+        <div className="flex items-center gap-3 px-2 py-1">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <span className="text-xs font-bold uppercase">{user.role[0]}</span>
+          </div>
+          <div>
+            <p className="text-[10px] opacity-70 uppercase leading-none">{user.role}</p>
+            <p className="font-semibold">{user.username || user.email}</p>
+          </div>
+        </div>
+
+        {/* เมนูตั้งค่าแยกออกมา */}
+        <Link 
+          to="/profile" 
+          onClick={toggleMenu}
+          className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-white/10 transition text-yellow-300 font-medium"
+        >
+          <UserIcon size={18} />
+          <span>EDIT PROFILE / SETTINGS</span>
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          className="w-full bg-red-500 hover:bg-red-600 transition rounded-xl py-2 mt-4 font-bold"
         >
           LOGOUT
         </button>

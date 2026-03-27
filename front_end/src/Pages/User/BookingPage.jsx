@@ -13,6 +13,7 @@ const BookingPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [bookedTimes, setBookedTimes] = useState([]);
 
+  const [loading, setLoading] = useState(false);
   /* ===============================
      FETCH COURTS + REALTIME
   =============================== */
@@ -109,6 +110,7 @@ const BookingPage = () => {
     if (!selectedCourt) return;
 
     const fetchBookedSlots = async () => {
+      
       const res = await fetch(
         `http://localhost:8000/api/booked-slots?court_id=${selectedCourt.id}&date=${selectedDate}`
       );
@@ -199,11 +201,55 @@ const BookingPage = () => {
   //     } 
   //   });
   // };
+  // const confirmBooking = async () => {
+  //   if (selectedTimes.length === 0) {
+  //     alert("กรุณาเลือกเวลา");
+  //     return;
+  //   }
+
+  //   try {
+  //     const res = await fetch("http://localhost:8000/api/hold-booking", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json"
+  //       },
+  //       body: JSON.stringify({
+  //         court_id: selectedCourt.id,
+  //         booking_date: selectedDate,
+  //         booking_times: selectedTimes,
+  //         total_price: totalPrice
+  //       })
+  //     });
+
+  //     const result = await res.json();
+
+  //     if (!result.success) {
+  //       alert(result.message || "ช่วงเวลานี้ถูกจองแล้ว");
+  //       return;
+  //     }
+
+  //     // ✅ ได้ booking_id กลับมา
+  //     navigate('/borrow', {
+  //       state: {
+  //         bookingId: result.booking_id, // 🔥 สำคัญ
+  //         courtData: selectedCourt,
+  //         bookingTimes: selectedTimes,
+  //         bookingDate: selectedDate,
+  //         courtAmount: totalPrice
+  //       }
+  //     });
+
+  //   } catch (err) {
+  //     alert("เชื่อมต่อ server ไม่ได้");
+  //   }
+  // };
   const confirmBooking = async () => {
     if (selectedTimes.length === 0) {
       alert("กรุณาเลือกเวลา");
       return;
     }
+
+    setLoading(true); // ✅
 
     try {
       const res = await fetch("http://localhost:8000/api/hold-booking", {
@@ -223,13 +269,13 @@ const BookingPage = () => {
 
       if (!result.success) {
         alert(result.message || "ช่วงเวลานี้ถูกจองแล้ว");
+        setLoading(false); // ✅
         return;
       }
 
-      // ✅ ได้ booking_id กลับมา
       navigate('/borrow', {
         state: {
-          bookingId: result.booking_id, // 🔥 สำคัญ
+          bookingId: result.booking_id,
           courtData: selectedCourt,
           bookingTimes: selectedTimes,
           bookingDate: selectedDate,
@@ -239,6 +285,8 @@ const BookingPage = () => {
 
     } catch (err) {
       alert("เชื่อมต่อ server ไม่ได้");
+    } finally {
+      setLoading(false); // ✅
     }
   };
 

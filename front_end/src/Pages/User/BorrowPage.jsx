@@ -10,6 +10,7 @@ export default function BorrowPage() {
   
   // รับข้อมูลจากหน้า Booking (ถ้ามี)
   const { 
+    bookingId,
     courtData = null, 
     bookingTimes = [], 
     courtAmount = 0,
@@ -302,9 +303,19 @@ export default function BorrowPage() {
                   return;
                 }
 
+                // navigate('/pay', {
+                //   state: {
+                //     ...location.state,
+                //     bookingDate: safeBookingDate,
+                //     selectedEquipments: cartItems,
+                //     totalAmount: grandTotal
+                //   }
+                // });
                 navigate('/pay', {
                   state: {
-                    ...location.state,
+                    bookingId, // ✅ ใส่ตรงนี้
+                    courtData,
+                    bookingTimes,
                     bookingDate: safeBookingDate,
                     selectedEquipments: cartItems,
                     totalAmount: grandTotal

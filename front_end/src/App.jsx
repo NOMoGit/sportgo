@@ -21,6 +21,8 @@ import AdminCourts from './Pages/Admin/AdminCourts';
 import ManageBorrowPage from "./Pages/Admin/ManageBorrowPage";
 import AdminBookingHistory from './Pages/Admin/AdminBookingHistory';
 import ManageEquipmentsPage from './Pages/Admin/ManageEquipmentsPage';
+import ProfilePage from './Pages/User/ProfilePage';
+// import { Toaster } from "react-hot-toast";
 
 // function App() {
 //   // ในอนาคตค่านี้จะมาจากระบบ Login จริง
@@ -132,7 +134,7 @@ function App() {
             <Route path="/pay" element={<PayPage />} />
             <Route path="/borrow" element={<BorrowPage />} />
             <Route path="/history" element={<HistoryPage />} />
-
+            <Route path="/profile" element={<ProfilePage user={user} setUser={setUser} />} />
           <Route
             path="/admin"
             element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />}

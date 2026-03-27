@@ -3,6 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "../../supabaseClient";
 
+const getLocalDateString = (daysToAdd = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysToAdd);
+  // ชดเชยเวลา Timezone (ไทย +7) ก่อนแปลงเป็น String
+  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+  return localDate.toISOString().split('T')[0];
+};
+
 const BookingPage = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("ทั้งหมด");
@@ -10,7 +18,8 @@ const BookingPage = () => {
   const [selectedTimes, setSelectedTimes] = useState([]); 
   const [courts, setCourts] = useState([]);
   
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  // const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString(0));
   const [bookedTimes, setBookedTimes] = useState([]);
 
   const [loading, setLoading] = useState(false);
@@ -250,7 +259,13 @@ const BookingPage = () => {
     }
 
     setLoading(true); // ✅
-
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("กรุณาเข้าสู่ระบบก่อนทำการจองสนามครับ");
+      navigate('/login'); 
+      setLoading(false); 
+      return; // สั่ง return เพื่อหยุดการทำงาน ไม่ให้โค้ดวิ่งไปบรรทัดล่าง
+    }
     try {
       const res = await fetch("http://localhost:8000/api/hold-booking", {
         method: "POST",
@@ -261,21 +276,27 @@ const BookingPage = () => {
           court_id: selectedCourt.id,
           booking_date: selectedDate,
           booking_times: selectedTimes,
-          total_price: totalPrice
+          total_price: totalPrice,
+          user_id: session.user.id 
         })
       });
 
       const result = await res.json();
 
+      // if (!result.success) {
+      //   alert(result.message || "ช่วงเวลานี้ถูกจองแล้ว");
+      //   setLoading(false); // ✅
+      //   return;
+      // }
       if (!result.success) {
-        alert(result.message || "ช่วงเวลานี้ถูกจองแล้ว");
-        setLoading(false); // ✅
+        alert(`เกิดข้อผิดพลาด: ${result.message || result.error || "ระบบขัดข้อง"}`);
+        setLoading(false); 
         return;
       }
-
       navigate('/borrow', {
         state: {
           bookingId: result.booking_id,
+          holdUntil: result.hold_until,
           courtData: selectedCourt,
           bookingTimes: selectedTimes,
           bookingDate: selectedDate,
@@ -289,11 +310,15 @@ const BookingPage = () => {
       setLoading(false); // ✅
     }
   };
+  // สร้างฟังก์ชันหาเวลา Local (ไทย) ป้องกันปัญหา UTC Timezone
 
-  const today = new Date().toISOString().split('T')[0];
-  const maxDate = new Date(
-    Date.now() + 6 * 24 * 60 * 60 * 1000
-  ).toISOString().split('T')[0];
+
+  const today = getLocalDateString(0); // วันนี้
+  const maxDate = getLocalDateString(6); // จองล่วงหน้าได้ 6 วัน (รวมวันนี้เป็น 7)
+  // const today = new Date().toISOString().split('T')[0];
+  // const maxDate = new Date(
+  //   Date.now() + 6 * 24 * 60 * 60 * 1000
+  // ).toISOString().split('T')[0];
 
 
   return (

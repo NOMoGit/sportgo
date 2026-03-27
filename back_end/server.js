@@ -359,23 +359,23 @@ app.get('/api/courts', async (req, res) => {
 });
 
 // --- ดึงข้อมูลสล็อตเวลาที่ "เต็มแล้ว" ตามวันที่และสนามที่เลือก ---
-app.get('/api/booked-slots', async (req, res) => {
-  const { court_id, date } = req.query; 
+// app.get('/api/booked-slots', async (req, res) => {
+//   const { court_id, date } = req.query; 
   
-  try {
-    const { data, error } = await supabase
-      .from('booking_time_slots')
-      .select('time_slot')
-      .eq('court_id', court_id)
-      .eq('booking_date', date); // ค้นหาเฉพาะวันที่กำหนด
+//   try {
+//     const { data, error } = await supabase
+//       .from('booking_time_slots')
+//       .select('time_slot')
+//       .eq('court_id', court_id)
+//       .eq('booking_date', date); // ค้นหาเฉพาะวันที่กำหนด
 
-    if (error) throw error;
-    res.json(data.map(item => item.time_slot)); 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-    return res.status(409).json({ message: "เวลานี้ถูกจองแล้ว" }); //เพิ่มใหม่
-  }
-});
+//     if (error) throw error;
+//     res.json(data.map(item => item.time_slot)); 
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//     return res.status(409).json({ message: "เวลานี้ถูกจองแล้ว" }); //เพิ่มใหม่
+//   }
+// });
 
 // --- บันทึกการจอง (Booking Transaction) ---
 app.post('/api/create-booking', upload.single('slip_image'), async (req, res) => {
@@ -441,6 +441,18 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
 
     // if (updateError) throw updateError;
     // 3. update booking
+    const { data: checkBooking } = await supabase
+      .from('bookings')
+      .select('status')
+      .eq('id', booking_id)
+      .single();
+
+    if (!checkBooking || checkBooking.status === 'cancelled') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "คิวนี้หมดเวลาและถูกยกเลิกไปแล้ว หากโอนเงินมาแล้วกรุณาติดต่อแอดมิน" 
+      });
+    }
     const { data: updatedBooking, error: updateError } = await supabase
       .from('bookings')
       .update({
@@ -647,71 +659,167 @@ app.post('/api/login', async (req, res) => {
 //     });
 //   }
 // });
+
+
+// app.post('/api/hold-booking', async (req, res) => {
+//   try {
+//     const { court_id, booking_date, booking_times, total_price } = req.body;
+
+//     if (!court_id || !booking_date || !booking_times?.length) {
+//       return res.status(400).json({ success: false, message: "ข้อมูลไม่ครบ" });
+//     }
+
+//     const now = new Date().toISOString(); // 🔥 ต้องมี
+
+//     // 🔍 เช็ค slot
+//     const { data: existing, error: checkError } = await supabase
+//       .from('booking_time_slots')
+//       .select(`
+//         time_slot,
+//         bookings(status, hold_until)
+//       `)
+//       .eq('court_id', court_id)
+//       .eq('booking_date', booking_date)
+//       .in('time_slot', booking_times);
+
+//     if (checkError) throw checkError;
+
+//     const blocked = existing.filter(item => {
+//       const booking = item.bookings;
+//       if (!booking) return false;
+
+//       if (booking.status === 'paid' || booking.status === 'borrowed' || booking.status === 'waiting') {
+//         return true;
+//       }
+
+//       if (
+//         booking.status === 'pending' &&
+//         booking.hold_until &&
+//         booking.hold_until > now
+//       ) {
+//         return true;
+//       }
+
+//       return false;
+//     });
+
+//     if (blocked.length > 0) {
+//       return res.json({
+//         success: false,
+//         message: "ช่วงเวลานี้ถูกจองแล้ว"
+//       });
+//     }
+
+//     // ✅ สร้าง booking
+//     const { data: booking, error: bError } = await supabase
+//       .from('bookings')
+//       .insert([{
+//         user_id,
+//         court_id,
+//         booking_date,
+//         total_price,
+//         status: 'pending',
+//         hold_until: new Date(Date.now() + 5 * 60 * 1000) // 5 นาที
+//       }])
+//       .select()
+//       .single();
+
+//     if (bError) throw bError;
+
+//     // ✅ insert slots
+//     const timeData = booking_times.map(time => ({
+//       booking_id: booking.id,
+//       court_id,
+//       booking_date,
+//       time_slot: time
+//     }));
+
+//     const { error: tError } = await supabase
+//       .from('booking_time_slots')
+//       .insert(timeData);
+
+//     if (tError) throw tError;
+
+//     res.json({
+//       success: true,
+//       booking_id: booking.id
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({
+//       success: false,
+//       error: err.message
+//     });
+//   }
+// });
 app.post('/api/hold-booking', async (req, res) => {
   try {
-    const { court_id, booking_date, booking_times, total_price } = req.body;
+    const { user_id, court_id, booking_date, booking_times, total_price } = req.body;
 
-    if (!court_id || !booking_date || !booking_times?.length) {
+    if (!user_id || !court_id || !booking_date || !booking_times?.length) {
       return res.status(400).json({ success: false, message: "ข้อมูลไม่ครบ" });
     }
 
-    const now = new Date().toISOString(); // 🔥 ต้องมี
+    const now = new Date().toISOString();
 
-    // 🔍 เช็ค slot
-    const { data: existing, error: checkError } = await supabase
+    // 🛡️ Step 1: หาสล็อตเวลาที่ซ้ำในตาราง booking_time_slots
+    const { data: timeSlots, error: timeError } = await supabase
       .from('booking_time_slots')
-      .select(`
-        time_slot,
-        bookings(status, hold_until)
-      `)
+      .select('booking_id, time_slot')
       .eq('court_id', court_id)
       .eq('booking_date', booking_date)
       .in('time_slot', booking_times);
 
-    if (checkError) throw checkError;
+    if (timeError) throw timeError;
 
-    const blocked = existing.filter(item => {
-      const booking = item.bookings;
-      if (!booking) return false;
+    if (timeSlots && timeSlots.length > 0) {
+      const bookingIds = [...new Set(timeSlots.map(t => t.booking_id))];
 
-      if (booking.status === 'paid' || booking.status === 'borrowed' || booking.status === 'waiting') {
-        return true;
-      }
+      const { data: activeBookings, error: bookingError } = await supabase
+        .from('bookings')
+        .select('id, status, hold_until')
+        .in('id', bookingIds);
 
-      if (
-        booking.status === 'pending' &&
-        booking.hold_until &&
-        booking.hold_until > now
-      ) {
-        return true;
-      }
+      if (bookingError) throw bookingError;
 
-      return false;
-    });
-
-    if (blocked.length > 0) {
-      return res.json({
-        success: false,
-        message: "ช่วงเวลานี้ถูกจองแล้ว"
+      const isBlocked = activeBookings.some(booking => {
+        if (['paid', 'borrowed', 'waiting'].includes(booking.status)) return true;
+        if (booking.status === 'pending' && booking.hold_until > now) return true;
+        return false;
       });
+
+      if (isBlocked) {
+        return res.json({ success: false, message: "ช่วงเวลานี้เพิ่งถูกจองไปเมื่อสักครู่ครับ" });
+      }
     }
 
-    // ✅ สร้าง booking
+    // 🧹 NEW STEP: กวาดขยะ! ลบเวลาที่ค้างจากคิวที่ยกเลิกไปแล้วออกให้เกลี้ยงก่อน
+    const { error: clearError } = await supabase
+      .from('booking_time_slots')
+      .delete()
+      .eq('court_id', court_id)
+      .eq('booking_date', booking_date)
+      .in('time_slot', booking_times);
+
+    if (clearError) throw clearError;
+
+    // ✅ สร้าง booking ได้เลย (ตอนนี้ไม่มีขยะมาขวางแล้ว)
     const { data: booking, error: bError } = await supabase
       .from('bookings')
       .insert([{
+        user_id,
         court_id,
         booking_date,
         total_price,
         status: 'pending',
-        hold_until: new Date(Date.now() + 5 * 60 * 1000) // 5 นาที
+        hold_until: new Date(Date.now() + 5 * 60 * 1000).toISOString()
       }])
       .select()
       .single();
 
     if (bError) throw bError;
 
-    // ✅ insert slots
     const timeData = booking_times.map(time => ({
       booking_id: booking.id,
       court_id,
@@ -725,67 +833,129 @@ app.post('/api/hold-booking', async (req, res) => {
 
     if (tError) throw tError;
 
-    res.json({
-      success: true,
-      booking_id: booking.id
-    });
+    res.json({ success: true, booking_id: booking.id,hold_until: booking.hold_until });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    console.error("🔥 DATABASE ERROR:", err.message);
+    
+    // 🛡️ ดัก Error กรณีมีคนแย่งกดเสี้ยววินาทีเดียวกัน
+    if (err.message.includes("unique_booking") || err.message.includes("duplicate key")) {
+       return res.status(409).json({ 
+         success: false, 
+         message: "มีผู้ใช้งานท่านอื่นกำลังทำรายการในเวลานี้พอดีครับ กรุณาลองใหม่" 
+       });
+    }
+
+    res.status(500).json({ success: false, message: `ระบบขัดข้อง: ${err.message}` });
   }
 });
 
+// app.get('/api/booked-slots', async (req, res) => {
+//   const { court_id, date } = req.query;
 
+//   try {
+//     const now = new Date().toISOString();
+
+//     const { data, error } = await supabase
+//       .from('booking_time_slots')
+//       .select(`
+//         time_slot,
+//         bookings(status, hold_until)
+//       `)
+//       .eq('court_id', court_id)
+//       .eq('booking_date', date);
+
+//     if (error) throw error;
+
+//     // 🔥 filter เฉพาะ slot ที่ "ควรล็อค"
+//     const booked = data.filter(item => {
+//       const booking = item.bookings;
+//       if (!booking) return false;
+
+//       // ✅ จ่ายแล้ว → ล็อค
+//       if (booking.status === 'paid' || booking.status === 'borrowed' || booking.status === 'waiting') {
+//         return true;
+//       }
+
+//       // ✅ pending + ยังไม่หมดเวลา → ล็อค
+//       if (
+//         booking.status === 'pending' &&
+//         booking.hold_until &&
+//         booking.hold_until > now
+//       ) {
+//         return true;
+//       }
+
+//       return false;
+//     });
+
+//     res.json(booked.map(item => item.time_slot));
+
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 app.get('/api/booked-slots', async (req, res) => {
   const { court_id, date } = req.query;
 
   try {
     const now = new Date().toISOString();
 
-    const { data, error } = await supabase
+    // 🛡️ Step 1: ดึง time_slots ทั้งหมดของสนามและวันที่นี้จากตาราง booking_time_slots
+    const { data: timeSlots, error: timeError } = await supabase
       .from('booking_time_slots')
-      .select(`
-        time_slot,
-        bookings(status, hold_until)
-      `)
+      .select('booking_id, time_slot')
       .eq('court_id', court_id)
       .eq('booking_date', date);
 
-    if (error) throw error;
+    if (timeError) throw timeError;
 
-    // 🔥 filter เฉพาะ slot ที่ "ควรล็อค"
-    const booked = data.filter(item => {
-      const booking = item.bookings;
-      if (!booking) return false;
+    // ถ้ายังไม่มีใครเคยจองสนามเวลานี้เลย ให้ส่ง Array เปล่ากลับไปได้เลย (ปุ่มจะกดได้หมด)
+    if (!timeSlots || timeSlots.length === 0) {
+      return res.json([]);
+    }
 
-      // ✅ จ่ายแล้ว → ล็อค
-      if (booking.status === 'paid' || booking.status === 'borrowed' || booking.status === 'waiting') {
-        return true;
-      }
+    // ดึง booking_id ทั้งหมดที่ไม่ซ้ำกันออกมา
+    const bookingIds = [...new Set(timeSlots.map(t => t.booking_id))];
 
-      // ✅ pending + ยังไม่หมดเวลา → ล็อค
-      if (
-        booking.status === 'pending' &&
-        booking.hold_until &&
-        booking.hold_until > now
-      ) {
-        return true;
-      }
+    // 🛡️ Step 2: นำ booking_id ไปดึงสถานะจากตาราง bookings
+    const { data: activeBookings, error: bookingError } = await supabase
+      .from('bookings')
+      .select('id, status, hold_until')
+      .in('id', bookingIds);
 
-      return false;
+    if (bookingError) throw bookingError;
+
+    // สร้าง Map เพื่อให้ค้นหาสถานะของ booking ได้เร็วขึ้น
+    const bookingStatusMap = {};
+    activeBookings.forEach(b => {
+      bookingStatusMap[b.id] = b;
     });
 
-    res.json(booked.map(item => item.time_slot));
+    // 🛡️ Step 3: กรองหาเฉพาะเวลาที่ "ถูกล็อก" จริงๆ
+    const blockedTimes = timeSlots.filter(slot => {
+      const booking = bookingStatusMap[slot.booking_id];
+      if (!booking) return false;
+
+      // ล็อกปุ่ม! ถ้าจ่ายแล้ว, ยืมแล้ว, หรือกำลังรอแอดมินตรวจสลิป
+      if (['paid', 'borrowed', 'waiting'].includes(booking.status)) return true;
+
+      // ล็อกปุ่ม! ถ้ากำลัง pending และยังไม่หมดเวลา (มีคนกำลังโอนเงินอยู่)
+      if (booking.status === 'pending' && booking.hold_until > now) return true;
+
+      // ถ้าเป็น cancelled หรือหมดเวลาแล้ว ให้ปล่อยผ่าน (ปุ่มจะกดได้)
+      return false;
+      
+    }).map(slot => slot.time_slot); // ตัดมาเฉพาะชื่อเวลา เช่น ["09:00 - 10:00", "13:00 - 14:00"]
+
+    // ส่ง Array ของเวลาที่ถูกล็อกกลับไปให้ฝั่ง React (เพื่อทำให้ปุ่มเป็นสีเทา)
+    res.json(blockedTimes);
 
   } catch (err) {
+    console.error("Error fetching booked slots:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
 // app.post('/api/cleanup-expired', async (req, res) => {
 //   try {
 //     const now = new Date().toISOString();

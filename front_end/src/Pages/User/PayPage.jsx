@@ -20,13 +20,54 @@ export default function PayPage() {
     bookingDate = null,
     totalAmount = 0 
   } = location.state || {};
+
+  // 🛡️ ดักจับกรณีผู้ใช้รีเฟรชหน้าเว็บแล้วข้อมูลหาย
+  useEffect(() => {
+    if (!bookingId) {
+      alert("ไม่พบข้อมูลการจอง กรุณาทำรายการใหม่อีกครั้งครับ");
+      navigate('/booking');
+    }
+  }, [bookingId, navigate]);
+
   // const totalAmount = courtAmount;
   const [qrCode, setQrCode] = useState("sample");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const PROMPTPAY_ID = "0985055141"; 
+  const PROMPTPAY_ID = import.meta.env.VITE_PROMPTPAY_ID;
+  const holdUntil = location.state?.holdUntil; 
+  
+  // State สำหรับเก็บเวลาที่เหลือ (เช่น "04:59")
+  const [timeLeft, setTimeLeft] = useState("");
 
+  useEffect(() => {
+    if (!holdUntil) return;
+
+    // สร้างตัวนับเวลาให้ทำงานทุกๆ 1 วินาที (1000 ms)
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const expireTime = new Date(holdUntil).getTime();
+      const distance = expireTime - now;
+
+      // ถ้าเวลาหมด (ระยะห่างติดลบ หรือเป็น 0)
+      if (distance <= 0) {
+        clearInterval(interval);
+        setTimeLeft("00:00");
+        alert("เวลาในการทำรายการหมดแล้ว ระบบได้ยกเลิกคิวของคุณ กรุณาทำรายการใหม่ครับ");
+        navigate('/booking'); // เด้งกลับไปหน้าจองสนาม
+      } else {
+        // คำนวณนาที และวินาที
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        // จัดฟอร์แมตให้เป็นเลข 2 หลักเสมอ (เช่น 04:05)
+        setTimeLeft(`${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+      }
+    }, 1000);
+
+    // เคลียร์ interval ทิ้งเมื่อผู้ใช้ปิดหน้านี้
+    return () => clearInterval(interval);
+  }, [holdUntil, navigate]);
   // ดึงข้อมูล User
   useEffect(() => {
     const getUser = async () => {
@@ -200,7 +241,10 @@ export default function PayPage() {
              <p className="text-gray-500 text-sm mb-6 text-center">
                สแกน QR Code เพื่อชำระเงิน<br/>ยอดเงินจะขึ้นโดยอัตโนมัติ
              </p>
-
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 flex justify-between items-center">
+                <span className="font-bold">กรุณาทำรายการภายในเวลา</span>
+                <span className="text-xl font-black">{timeLeft}</span>
+              </div>
              <div className="w-full">
                <label className="block w-full cursor-pointer group">
                  <div className="flex items-center justify-center w-full h-14 px-4 transition bg-white border-2 border-gray-200 border-dashed rounded-2xl appearance-none cursor-pointer hover:border-blue-500 focus:outline-none">

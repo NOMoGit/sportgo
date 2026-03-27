@@ -23,6 +23,42 @@ export default function BorrowPage() {
   
   const categories = ["ทั้งหมด", "ฟุตบอล", "แบดมินตัน", "บาสเกตบอล", "ปิงปอง", "วอลเลย์บอล"];
 
+
+  const holdUntil = location.state?.holdUntil; 
+  
+  // State สำหรับเก็บเวลาที่เหลือ (เช่น "04:59")
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    if (!holdUntil) return;
+
+    // สร้างตัวนับเวลาให้ทำงานทุกๆ 1 วินาที (1000 ms)
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const expireTime = new Date(holdUntil).getTime();
+      const distance = expireTime - now;
+
+      // ถ้าเวลาหมด (ระยะห่างติดลบ หรือเป็น 0)
+      if (distance <= 0) {
+        clearInterval(interval);
+        setTimeLeft("00:00");
+        alert("เวลาในการทำรายการหมดแล้ว ระบบได้ยกเลิกคิวของคุณ กรุณาทำรายการใหม่ครับ");
+        navigate('/booking'); // เด้งกลับไปหน้าจองสนาม
+      } else {
+        // คำนวณนาที และวินาที
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        // จัดฟอร์แมตให้เป็นเลข 2 หลักเสมอ (เช่น 04:05)
+        setTimeLeft(`${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+      }
+    }, 1000);
+
+    // เคลียร์ interval ทิ้งเมื่อผู้ใช้ปิดหน้านี้
+    return () => clearInterval(interval);
+  }, [holdUntil, navigate]);
+
+  
   const formatTimeRange = (times) => {
     if (!times || times.length === 0) return "";
 
@@ -117,16 +153,37 @@ export default function BorrowPage() {
   //     [id]: Math.max(0, (prev[id] || 0) + delta)
   //   }));
   // };
+
+
+  // useEffect(() => {
+  //   setSelectedEquips(prev => {
+  //     const updated = { ...prev };
+
+  //     equipments.forEach(item => {
+  //       if (updated[item.id] > item.stock) {
+  //         if (item.stock === 0) {
+  //           delete updated[item.id];
+  //         } else {
+  //           updated[item.id] = item.stock;
+  //         }
+  //       }
+  //     });
+
+  //     return updated;
+  //   });
+  // }, [equipments]);
   useEffect(() => {
     setSelectedEquips(prev => {
       const updated = { ...prev };
 
       equipments.forEach(item => {
-        if (updated[item.id] > item.stock) {
+        // ✅ เปลี่ยนมาเช็ก updated[item.id]?.qty แทน
+        if (updated[item.id] && updated[item.id].qty > item.stock) {
           if (item.stock === 0) {
             delete updated[item.id];
           } else {
-            updated[item.id] = item.stock;
+            // ✅ เปลี่ยนเฉพาะค่า qty ไม่ให้ทะลุสต๊อก
+            updated[item.id] = { ...updated[item.id], qty: item.stock };
           }
         }
       });
@@ -134,6 +191,8 @@ export default function BorrowPage() {
       return updated;
     });
   }, [equipments]);
+
+  
   // const updateQuantity = (item, delta) => {
   //   setSelectedEquips(prev => {
   //     const currentQty = prev[item.id] || 0;
@@ -294,7 +353,10 @@ export default function BorrowPage() {
                 <span className="text-teal-600">฿{grandTotal.toLocaleString()}</span>
               </div>
             </div>
-
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mt-3 flex justify-between items-center">
+              <span className="font-bold">กรุณาทำรายการภายในเวลา</span>
+              <span className="text-xl font-black">{timeLeft}</span>
+            </div>
             <button 
               disabled={grandTotal === 0}
               onClick={() => {
@@ -318,6 +380,7 @@ export default function BorrowPage() {
                     bookingTimes,
                     bookingDate: safeBookingDate,
                     selectedEquipments: cartItems,
+                    holdUntil: holdUntil,
                     totalAmount: grandTotal
                   }
                 });

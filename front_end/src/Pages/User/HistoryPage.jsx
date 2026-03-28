@@ -44,15 +44,29 @@ const HistoryPage = () => {
 
         const isBorrowOnly = !item.courts;
 
+        // if (item.status === 'paid') {
+        //   uiStatus = isBorrowOnly ? 'borrowed' : 'booked';
+        //   uiStatusText = isBorrowOnly ? 'ยืมสำเร็จ' : 'จองสำเร็จ';
+        // } else if (item.status === 'returned') {
+        //   uiStatus = 'returned';
+        //   uiStatusText = 'คืนอุปกรณ์แล้ว';
+        // } else if (item.status === 'rejected') {
+        //   uiStatus = 'cancelled';
+        //   uiStatusText = 'ถูกปฏิเสธ';
+        // }
         if (item.status === 'paid') {
           uiStatus = isBorrowOnly ? 'borrowed' : 'booked';
           uiStatusText = isBorrowOnly ? 'ยืมสำเร็จ' : 'จองสำเร็จ';
         } else if (item.status === 'returned') {
           uiStatus = 'returned';
           uiStatusText = 'คืนอุปกรณ์แล้ว';
-        } else if (item.status === 'rejected') {
+        } else if (item.status === 'rejected' || item.status === 'cancelled') {
           uiStatus = 'cancelled';
           uiStatusText = 'ถูกปฏิเสธ';
+        } else {
+          // กรณีอื่น ๆ
+          uiStatus = 'pending';
+          uiStatusText = 'รอตรวจสอบสลิป';
         }
 
         return {

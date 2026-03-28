@@ -261,7 +261,7 @@
 //         user_id, 
 //         court_id, 
 //         total_price, 
-//         status: 'waiting_verify' // สถานะรอแอดมินตรวจสลิป
+//         status: 'waiting' // สถานะรอแอดมินตรวจสลิป
 //       }])
 //       .select()
 //       .single();
@@ -988,8 +988,9 @@ setInterval(async () => {
       .select('id')
       // .eq('status', 'pending')
       .in('status', ['pending'])
-      .lt('hold_until', now);
-
+      .lt('hold_until', now)
+      .not('hold_until', 'is', null);
+      
     if (error) throw error;
     if (!data || data.length === 0) return;
 

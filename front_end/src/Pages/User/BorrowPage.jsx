@@ -1,5 +1,718 @@
 
 
+// import React, { useState, useEffect } from 'react';
+// import { useLocation, useNavigate } from 'react-router-dom';
+// import { supabase } from "../../supabaseClient";
+
+// export default function BorrowPage() {
+//   const location = useLocation();
+//   const navigate = useNavigate();
+  
+//   // รับข้อมูลจากหน้า Booking (ถ้ามี)
+//   const { 
+//     bookingId,
+//     courtData = null, 
+//     bookingTimes = [], 
+//     courtAmount = 0,
+//     bookingDate = null
+//   } = location.state || {};
+  
+//   const [equipments, setEquipments] = useState([]);
+//   const [selectedEquips, setSelectedEquips] = useState({});
+//   const [filter, setFilter] = useState(courtData?.category || "ทั้งหมด");
+  
+//   const categories = ["ทั้งหมด", "ฟุตบอล", "แบดมินตัน", "บาสเกตบอล", "ปิงปอง", "วอลเลย์บอล"];
+
+
+//   const holdUntil = location.state?.holdUntil; 
+  
+//   // State สำหรับเก็บเวลาที่เหลือ (เช่น "04:59")
+//   const [timeLeft, setTimeLeft] = useState("");
+
+//   useEffect(() => {
+//     if (!holdUntil) return;
+
+//     // สร้างตัวนับเวลาให้ทำงานทุกๆ 1 วินาที (1000 ms)
+//     const interval = setInterval(() => {
+//       const now = new Date().getTime();
+//       const expireTime = new Date(holdUntil).getTime();
+//       const distance = expireTime - now;
+
+//       // ถ้าเวลาหมด (ระยะห่างติดลบ หรือเป็น 0)
+//       if (distance <= 0) {
+//         clearInterval(interval);
+//         setTimeLeft("00:00");
+//         alert("เวลาในการทำรายการหมดแล้ว ระบบได้ยกเลิกคิวของคุณ กรุณาทำรายการใหม่ครับ");
+//         navigate('/booking'); // เด้งกลับไปหน้าจองสนาม
+//       } else {
+//         // คำนวณนาที และวินาที
+//         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+//         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+//         // จัดฟอร์แมตให้เป็นเลข 2 หลักเสมอ (เช่น 04:05)
+//         setTimeLeft(`${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+//       }
+//     }, 1000);
+
+//     // เคลียร์ interval ทิ้งเมื่อผู้ใช้ปิดหน้านี้
+//     return () => clearInterval(interval);
+//   }, [holdUntil, navigate]);
+
+  
+//   const formatTimeRange = (times) => {
+//     if (!times || times.length === 0) return "";
+
+//     // 1. เรียงลำดับเวลาจากน้อยไปมาก
+//     const sortedTimes = [...times].sort((a, b) => {
+//       return parseInt(a.split(":")[0]) - parseInt(b.split(":")[0]);
+//     });
+
+//     let ranges = [];
+//     let currentRange = null;
+
+//     sortedTimes.forEach((timeStr) => {
+//       const [start, end] = timeStr.split(" - ");
+      
+//       if (!currentRange) {
+//         currentRange = { start, end };
+//       } else {
+//         // 2. เช็คว่าเวลาเริ่มต้นของอันนี้ ตรงกับเวลาสิ้นสุดของอันก่อนหน้าหรือไม่ (ต่อเนื่องกัน)
+//         if (start === currentRange.end) {
+//           currentRange.end = end; // ขยายช่วงเวลาออกไป
+//         } else {
+//           // 3. ถ้าไม่ต่อเนื่อง ให้เก็บช่วงเก่าแล้วเริ่มช่วงใหม่
+//           ranges.push(`${currentRange.start} - ${currentRange.end}`);
+//           currentRange = { start, end };
+//         }
+//       }
+//     });
+    
+//     if (currentRange) {
+//       ranges.push(`${currentRange.start} - ${currentRange.end}`);
+//     }
+
+//     return ranges.join(", "); // จะได้ผลลัพธ์เช่น "09:00 - 11:00, 14:00 - 15:00"
+//   };
+  
+//   // useEffect(() => {
+//   //   const fetchEquip = async () => {
+//   //     let query = supabase.from('equipments').select('*');
+//   //     if (filter !== "ทั้งหมด") {
+//   //       query = query.eq('sport_type', filter.trim());
+//   //     }
+//   //     const { data, error } = await query;
+//   //     if (error) return console.error(error);
+//   //     setEquipments(data || []);
+//   //   };
+//   //   fetchEquip();
+//   // }, [filter]);
+//   // useEffect(() => {
+//   //   const channel = supabase
+//   //     .channel('realtime-equipments')
+//   //     .on(
+//   //       'postgres_changes',
+//   //       { event: '*', schema: 'public', table: 'equipments' },
+//   //       (payload) => {
+//   //         setEquipments(prev =>
+//   //           prev.map(e =>
+//   //             e.id === payload.new.id ? payload.new : e
+//   //           )
+//   //         );
+//   //       }
+//   //     )
+//   //     .subscribe();
+
+//   //   return () => supabase.removeChannel(channel);
+//   // }, []);
+//   useEffect(() => {
+//   const fetchEquip = async () => {
+//     let query = supabase.from('equipments').select('*');
+//     if (filter !== "ทั้งหมด") {
+//       query = query.eq('sport_type', filter.trim());
+//     }
+//     const { data, error } = await query;
+//     if (!error) setEquipments(data || []);
+//   };
+
+//   fetchEquip();
+
+//   const channel = supabase
+//     .channel('realtime-equipments')
+//     .on(
+//       'postgres_changes',
+//       { event: '*', schema: 'public', table: 'equipments' },
+//       () => fetchEquip()
+//     )
+//     .subscribe();
+
+//   return () => supabase.removeChannel(channel);
+// }, [filter]);
+//   // const updateQuantity = (id, delta) => {
+//   //   setSelectedEquips(prev => ({
+//   //     ...prev,
+//   //     [id]: Math.max(0, (prev[id] || 0) + delta)
+//   //   }));
+//   // };
+
+
+//   // useEffect(() => {
+//   //   setSelectedEquips(prev => {
+//   //     const updated = { ...prev };
+
+//   //     equipments.forEach(item => {
+//   //       if (updated[item.id] > item.stock) {
+//   //         if (item.stock === 0) {
+//   //           delete updated[item.id];
+//   //         } else {
+//   //           updated[item.id] = item.stock;
+//   //         }
+//   //       }
+//   //     });
+
+//   //     return updated;
+//   //   });
+//   // }, [equipments]);
+//   useEffect(() => {
+//     setSelectedEquips(prev => {
+//       const updated = { ...prev };
+
+//       equipments.forEach(item => {
+//         // ✅ เปลี่ยนมาเช็ก updated[item.id]?.qty แทน
+//         if (updated[item.id] && updated[item.id].qty > item.stock) {
+//           if (item.stock === 0) {
+//             delete updated[item.id];
+//           } else {
+//             // ✅ เปลี่ยนเฉพาะค่า qty ไม่ให้ทะลุสต๊อก
+//             updated[item.id] = { ...updated[item.id], qty: item.stock };
+//           }
+//         }
+//       });
+
+//       return updated;
+//     });
+//   }, [equipments]);
+
+  
+//   // const updateQuantity = (item, delta) => {
+//   //   setSelectedEquips(prev => {
+//   //     const currentQty = prev[item.id] || 0;
+//   //     const newQty = currentQty + delta;
+
+//   //     if (newQty < 0) return prev;
+
+//   //     // ❗ เช็ก stock
+//   //     if (newQty > item.stock) {
+//   //       alert("อุปกรณ์ไม่เพียงพอ");
+//   //       return prev;
+//   //     }
+
+//   //     return {
+//   //       ...prev,
+//   //       [item.id]: newQty
+//   //     };
+//   //   });
+//   // };
+//   const updateQuantity = (item, delta) => {
+//   setSelectedEquips(prev => {
+//     const current = prev[item.id] || {
+//       id: item.id,
+//       qty: 0,
+//       price: Number(item.price_per_unit),
+//       name: item.name
+//     };
+
+//     const newQty = current.qty + delta;
+//     if (newQty < 0) return prev;
+//     if (newQty > item.stock) {
+//       alert("อุปกรณ์ไม่เพียงพอ");
+//       return prev;
+//     }
+
+//     return {
+//       ...prev,
+//       [item.id]: { ...current, qty: newQty }
+//     };
+//   });
+// };
+
+//   // กรองรายการที่เลือกจริงเพื่อนำมาแสดงในแถบสรุป
+//   // const cartItems = equipments
+//   //   .filter(e => selectedEquips[e.id] > 0)
+//   //   .map(e => ({ ...e, qty: selectedEquips[e.id] }));
+//   const cartItems = Object.values(selectedEquips).filter(i => i.qty > 0);
+//   // const equipTotal = cartItems.reduce((sum, item) => sum + (item.price_per_unit * item.qty), 0);
+//   const equipTotal = cartItems.reduce(
+//     (sum, item) => sum + item.price * item.qty,
+//     0
+//   );
+//   const grandTotal = (courtAmount || 0) + equipTotal;
+
+//   const today = new Date().toISOString().slice(0, 10);
+//   const safeBookingDate =
+//   bookingDate && bookingDate !== ""
+//     ? bookingDate
+//     : today;
+//   return (
+//     <div className="min-h-screen bg-gray-50 p-4 md:p-8 pb-40">
+//       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+//         {/* ส่วนเลือกอุปกรณ์ (Left Side) */}
+//         <div className="lg:col-span-2">
+//           <header className="mb-8">
+//             <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">เลือกยืมอุปกรณ์</h1>
+//             <div className="flex overflow-x-auto gap-2 mt-4 no-scrollbar">
+//               {categories.map(cat => (
+//                 <button key={cat} onClick={() => setFilter(cat)} className={`px-5 py-2 rounded-full font-bold whitespace-nowrap transition-all ${filter === cat ? "bg-[#003E77] text-white shadow-md" : "bg-white text-gray-600 shadow-sm"}`}>{cat}</button>
+//               ))}
+//             </div>
+//           </header>
+
+//           <div className="grid gap-4">
+//             {equipments.map(item => (
+//               <div key={item.id} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4">
+//                 <img src={item.image_url || 'https://via.placeholder.com/100'} className="w-20 h-20 object-cover rounded-2xl bg-gray-50" alt="" />
+//                 <div className="flex-grow">
+//                   <h3 className="font-bold text-gray-800">{item.name}</h3>
+//                   <p className="text-teal-600 font-bold text-sm">฿{item.price_per_unit}</p>
+//                 </div>
+//                 <div className="flex items-center bg-gray-50 rounded-xl p-1 gap-3">
+//                   {/* <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button> */}
+//                   <button onClick={() => updateQuantity(item, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button>
+
+//                   {/* <span className="w-4 text-center font-bold">{selectedEquips[item.id] || 0}</span> */}
+//                   <span className="w-4 text-center font-bold">
+//                     {selectedEquips[item.id]?.qty || 0}
+//                   </span>
+//                   {/* <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button> */}
+//                   <button onClick={() => updateQuantity(item, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button>
+
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+
+//         {/* ส่วนสรุปรายการ (Right Side - Summary) */}
+//         <div className="lg:col-span-1">
+//           <div className="bg-white p-6 rounded-[2rem] shadow-xl border border-gray-100 sticky top-8">
+//             <h2 className="text-xl font-black mb-4 flex justify-between">
+//               รายการที่เลือก <span>{cartItems.length + (courtData ? 1 : 0)}</span>
+//             </h2>
+            
+//             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+//               {/* ถ้ามีการจองสนามมา ให้โชว์ค่าสนาม */}
+//               {courtData && (
+//                 <div className="flex justify-between items-start text-sm bg-[#003E77]/20 p-3 rounded-xl border border-teal-100">
+//                   <div>
+//                     <p className="font-bold text-gray-700">สนาม: {courtData.name}</p>
+//                     {/* <p className="text-xs text-teal-600">{bookingTimes.length} ชม. ({bookingTimes.join(' , ')})</p> */}
+//                     <div className="text-xs text-gray-700 flex flex-wrap gap-1 items-center">
+//                       <span className="font-bold">เวลา:</span>
+//                       {formatTimeRange(bookingTimes).split(', ').map((range, index) => (
+//                         <span key={index} className="bg-[#003E77]/50 px-2 py-0.5 rounded-md text-white">
+//                           {range}
+//                         </span>
+//                       ))}
+//                       <span className="ml-1 text-[10px] opacity-70">({bookingTimes.length} ชม.)</span>
+//                     </div>
+//                   </div>
+//                   <p className="font-bold text-gray-700">฿{courtAmount.toLocaleString()}</p>
+
+//                 </div>
+//               )}
+
+//               {/* รายการอุปกรณ์ที่เลือก */}
+//               {/* {cartItems.map(item => (
+//                 <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
+//                   <p className="text-gray-600">{item.name} <span className="font-bold text-gray-900">x{item.qty}</span></p>
+//                   <p className="font-bold text-gray-800">฿{(item.price_per_unit * item.qty).toLocaleString()}</p>
+//                 </div>
+//               ))} */}
+//               {cartItems.map(item => (
+//                 <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
+//                   <p className="font-bold text-gray-900">
+//                     {item.name} <span className="font-bold">x{item.qty}</span>
+//                   </p>
+//                   <p className="font-bold">
+//                     ฿{(item.price * item.qty).toLocaleString()}
+//                   </p>
+//                 </div>
+//               ))}
+//               {cartItems.length === 0 && !courtData && (
+//                 <p className="text-center text-gray-400 py-10 italic">ยังไม่มีรายการที่เลือก</p>
+//               )}
+//             </div>
+
+//             <div className="border-t-2 border-dashed pt-4 space-y-2">
+//               <div className="flex justify-between text-sm text-gray-500">
+//                 <span>ยอดรวมอุปกรณ์</span>
+//                 <span>฿{equipTotal.toLocaleString()}</span>
+//               </div>
+//               <div className="flex justify-between text-2xl font-black text-gray-900 pt-2">
+//                 <span>ยอดสุทธิ</span>
+//                 <span className="text-teal-600">฿{grandTotal.toLocaleString()}</span>
+//               </div>
+//             </div>
+//             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mt-3 flex justify-between items-center">
+//               <span className="font-bold">กรุณาทำรายการภายในเวลา</span>
+//               <span className="text-xl font-black">{timeLeft}</span>
+//             </div>
+//             <button 
+//               disabled={grandTotal === 0}
+//               onClick={() => {
+//                 if (!safeBookingDate) {
+//                   alert("ไม่พบวันที่จอง กรุณาเลือกวันที่ใหม่");
+//                   return;
+//                 }
+
+//                 // navigate('/pay', {
+//                 //   state: {
+//                 //     ...location.state,
+//                 //     bookingDate: safeBookingDate,
+//                 //     selectedEquipments: cartItems,
+//                 //     totalAmount: grandTotal
+//                 //   }
+//                 // });
+//                 navigate('/pay', {
+//                   state: {
+//                     bookingId, // ✅ ใส่ตรงนี้
+//                     courtData,
+//                     bookingTimes,
+//                     bookingDate: safeBookingDate,
+//                     selectedEquipments: cartItems,
+//                     holdUntil: holdUntil,
+//                     totalAmount: grandTotal
+//                   }
+//                 });
+//               }}
+//               className="w-full bg-[#003E77] hover:bg-blue-700 text-white py-4 rounded-2xl font-bold mt-6 transition-all disabled:bg-gray-200"
+//             >
+//               ไปหน้าชำระเงิน
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+// import React, { useState, useEffect } from 'react';
+// import { useLocation, useNavigate } from 'react-router-dom';
+// import { supabase } from "../../supabaseClient";
+
+// export default function BorrowPage() {
+//   const location = useLocation();
+//   const navigate = useNavigate();
+  
+//   const { 
+//     bookingId,
+//     courtData = null, 
+//     bookingTimes = [], 
+//     courtAmount = 0,
+//     bookingDate = null
+//   } = location.state || {};
+  
+//   const [equipments, setEquipments] = useState([]);
+//   const [selectedEquips, setSelectedEquips] = useState({});
+//   const [filter, setFilter] = useState(courtData?.category || "ทั้งหมด");
+  
+//   const categories = ["ทั้งหมด", "ฟุตบอล", "แบดมินตัน", "บาสเกตบอล", "ปิงปอง", "วอลเลย์บอล"];
+
+//   const holdUntil = location.state?.holdUntil; 
+//   const [timeLeft, setTimeLeft] = useState("");
+
+//   useEffect(() => {
+//     if (!holdUntil) return;
+
+//     const interval = setInterval(() => {
+//       const now = new Date().getTime();
+//       const expireTime = new Date(holdUntil).getTime();
+//       const distance = expireTime - now;
+
+//       if (distance <= 0) {
+//         clearInterval(interval);
+//         setTimeLeft("00:00");
+//         alert("เวลาในการทำรายการหมดแล้ว ระบบได้ยกเลิกคิวของคุณ กรุณาทำรายการใหม่ครับ");
+//         navigate('/booking');
+//       } else {
+//         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+//         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+//         setTimeLeft(`${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+//       }
+//     }, 1000);
+
+//     return () => clearInterval(interval);
+//   }, [holdUntil, navigate]);
+
+//   const formatTimeRange = (times) => {
+//     if (!times || times.length === 0) return "";
+
+//     const sortedTimes = [...times].sort((a, b) => {
+//       return parseInt(a.split(":")[0]) - parseInt(b.split(":")[0]);
+//     });
+
+//     let ranges = [];
+//     let currentRange = null;
+
+//     sortedTimes.forEach((timeStr) => {
+//       const [start, end] = timeStr.split(" - ");
+      
+//       if (!currentRange) {
+//         currentRange = { start, end };
+//       } else {
+//         if (start === currentRange.end) {
+//           currentRange.end = end;
+//         } else {
+//           ranges.push(`${currentRange.start} - ${currentRange.end}`);
+//           currentRange = { start, end };
+//         }
+//       }
+//     });
+    
+//     if (currentRange) {
+//       ranges.push(`${currentRange.start} - ${currentRange.end}`);
+//     }
+
+//     return ranges.join(", ");
+//   };
+  
+//   useEffect(() => {
+//     const fetchEquip = async () => {
+//       let query = supabase.from('equipments').select('*');
+//       if (filter !== "ทั้งหมด") {
+//         query = query.eq('sport_type', filter.trim());
+//       }
+//       const { data, error } = await query;
+//       if (!error) setEquipments(data || []);
+//     };
+
+//     fetchEquip();
+
+//     const channel = supabase
+//       .channel('realtime-equipments')
+//       .on(
+//         'postgres_changes',
+//         { event: '*', schema: 'public', table: 'equipments' },
+//         () => fetchEquip()
+//       )
+//       .subscribe();
+
+//     return () => supabase.removeChannel(channel);
+//   }, [filter]);
+
+//   useEffect(() => {
+//     setSelectedEquips(prev => {
+//       const updated = { ...prev };
+
+//       equipments.forEach(item => {
+//         if (updated[item.id] && updated[item.id].qty > item.stock) {
+//           if (item.stock === 0) {
+//             delete updated[item.id];
+//           } else {
+//             updated[item.id] = { ...updated[item.id], qty: item.stock };
+//           }
+//         }
+//       });
+
+//       return updated;
+//     });
+//   }, [equipments]);
+
+//   const updateQuantity = (item, delta) => {
+//     setSelectedEquips(prev => {
+//       const current = prev[item.id] || {
+//         id: item.id,
+//         qty: 0,
+//         price: Number(item.price_per_unit),
+//         name: item.name
+//       };
+
+//       const newQty = current.qty + delta;
+//       if (newQty < 0) return prev;
+//       if (newQty > item.stock) {
+//         alert("อุปกรณ์ไม่เพียงพอ");
+//         return prev;
+//       }
+
+//       return {
+//         ...prev,
+//         [item.id]: { ...current, qty: newQty }
+//       };
+//     });
+//   };
+
+//   const cartItems = Object.values(selectedEquips).filter(i => i.qty > 0);
+//   const equipTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+//   const grandTotal = (courtAmount || 0) + equipTotal;
+
+//   const today = new Date().toISOString().slice(0, 10);
+//   const safeBookingDate = bookingDate && bookingDate !== "" ? bookingDate : today;
+
+//   // ✅ handleCheckout — รองรับทั้งจองสนาม + ยืมอุปกรณ์เฉยๆ
+//   const handleCheckout = async () => {
+//     if (!safeBookingDate) {
+//       alert("ไม่พบวันที่จอง กรุณาเลือกวันที่ใหม่");
+//       return;
+//     }
+
+//     let finalBookingId = bookingId;
+
+//     // ถ้าไม่มี bookingId (ยืมอุปกรณ์เฉยๆ ไม่ผ่านจองสนาม)
+//     if (!finalBookingId) {
+//       const { data: { session } } = await supabase.auth.getSession();
+//       if (!session) {
+//         alert("กรุณาเข้าสู่ระบบก่อนทำรายการ");
+//         navigate('/login');
+//         return;
+//       }
+
+//       const { data: newBooking, error } = await supabase
+//         .from("bookings")
+//         .insert([{
+//           user_id: session.user.id,
+//           court_id: null,
+//           booking_date: safeBookingDate,
+//           total_price: grandTotal,
+//           status: "pending",
+//           hold_until: new Date(Date.now() + 5 * 60 * 1000).toISOString() 
+//         }])
+//         .select()
+//         .single();
+
+//       if (error) {
+//         alert("เกิดข้อผิดพลาด: " + error.message);
+//         return;
+//       }
+
+//       finalBookingId = newBooking.id;
+//     }
+
+//     navigate('/pay', {
+//       state: {
+//         bookingId: finalBookingId,
+//         courtData,
+//         bookingTimes,
+//         bookingDate: safeBookingDate,
+//         selectedEquipments: cartItems,
+//         holdUntil: newBooking.hold_until,
+//         totalAmount: grandTotal
+//       }
+//     });
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 p-4 md:p-8 pb-40">
+//       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+//         {/* ส่วนเลือกอุปกรณ์ (Left Side) */}
+//         <div className="lg:col-span-2">
+//           <header className="mb-8">
+//             <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">เลือกยืมอุปกรณ์</h1>
+//             <div className="flex overflow-x-auto gap-2 mt-4 no-scrollbar">
+//               {categories.map(cat => (
+//                 <button key={cat} onClick={() => setFilter(cat)} className={`px-5 py-2 rounded-full font-bold whitespace-nowrap transition-all ${filter === cat ? "bg-[#003E77] text-white shadow-md" : "bg-white text-gray-600 shadow-sm"}`}>{cat}</button>
+//               ))}
+//             </div>
+//           </header>
+
+//           <div className="grid gap-4">
+//             {equipments.map(item => (
+//               <div key={item.id} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4">
+//                 <img src={item.image_url || 'https://via.placeholder.com/100'} className="w-20 h-20 object-cover rounded-2xl bg-gray-50" alt="" />
+//                 <div className="flex-grow">
+//                   <h3 className="font-bold text-gray-800">{item.name}</h3>
+//                   <p className="text-teal-600 font-bold text-sm">฿{item.price_per_unit}</p>
+//                 </div>
+//                 <div className="flex items-center bg-gray-50 rounded-xl p-1 gap-3">
+//                   <button onClick={() => updateQuantity(item, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button>
+//                   <span className="w-4 text-center font-bold">
+//                     {selectedEquips[item.id]?.qty || 0}
+//                   </span>
+//                   <button onClick={() => updateQuantity(item, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button>
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+
+//         {/* ส่วนสรุปรายการ (Right Side) */}
+//         <div className="lg:col-span-1">
+//           <div className="bg-white p-6 rounded-[2rem] shadow-xl border border-gray-100 sticky top-8">
+//             <h2 className="text-xl font-black mb-4 flex justify-between">
+//               รายการที่เลือก <span>{cartItems.length + (courtData ? 1 : 0)}</span>
+//             </h2>
+            
+//             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
+//               {courtData && (
+//                 <div className="flex justify-between items-start text-sm bg-[#003E77]/20 p-3 rounded-xl border border-teal-100">
+//                   <div>
+//                     <p className="font-bold text-gray-700">สนาม: {courtData.name}</p>
+//                     <div className="text-xs text-gray-700 flex flex-wrap gap-1 items-center">
+//                       <span className="font-bold">เวลา:</span>
+//                       {formatTimeRange(bookingTimes).split(', ').map((range, index) => (
+//                         <span key={index} className="bg-[#003E77]/50 px-2 py-0.5 rounded-md text-white">
+//                           {range}
+//                         </span>
+//                       ))}
+//                       <span className="ml-1 text-[10px] opacity-70">({bookingTimes.length} ชม.)</span>
+//                     </div>
+//                   </div>
+//                   <p className="font-bold text-gray-700">฿{courtAmount.toLocaleString()}</p>
+//                 </div>
+//               )}
+
+//               {cartItems.map(item => (
+//                 <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
+//                   <p className="font-bold text-gray-900">
+//                     {item.name} <span className="font-bold">x{item.qty}</span>
+//                   </p>
+//                   <p className="font-bold">
+//                     ฿{(item.price * item.qty).toLocaleString()}
+//                   </p>
+//                 </div>
+//               ))}
+
+//               {cartItems.length === 0 && !courtData && (
+//                 <p className="text-center text-gray-400 py-10 italic">ยังไม่มีรายการที่เลือก</p>
+//               )}
+//             </div>
+
+//             <div className="border-t-2 border-dashed pt-4 space-y-2">
+//               <div className="flex justify-between text-sm text-gray-500">
+//                 <span>ยอดรวมอุปกรณ์</span>
+//                 <span>฿{equipTotal.toLocaleString()}</span>
+//               </div>
+//               <div className="flex justify-between text-2xl font-black text-gray-900 pt-2">
+//                 <span>ยอดสุทธิ</span>
+//                 <span className="text-teal-600">฿{grandTotal.toLocaleString()}</span>
+//               </div>
+//             </div>
+
+//             {/* แสดง countdown เฉพาะตอนจองสนาม */}
+//             {holdUntil && (
+//               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mt-3 flex justify-between items-center">
+//                 <span className="font-bold">กรุณาทำรายการภายในเวลา</span>
+//                 <span className="text-xl font-black">{timeLeft}</span>
+//               </div>
+//             )}
+
+//             {/* ✅ เปลี่ยนเป็น onClick={handleCheckout} */}
+//             <button 
+//               disabled={grandTotal === 0}
+//               onClick={handleCheckout}
+//               className="w-full bg-[#003E77] hover:bg-blue-700 text-white py-4 rounded-2xl font-bold mt-6 transition-all disabled:bg-gray-200"
+//             >
+//               ไปหน้าชำระเงิน
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from "../../supabaseClient";
@@ -8,7 +721,6 @@ export default function BorrowPage() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // รับข้อมูลจากหน้า Booking (ถ้ามี)
   const { 
     bookingId,
     courtData = null, 
@@ -23,46 +735,35 @@ export default function BorrowPage() {
   
   const categories = ["ทั้งหมด", "ฟุตบอล", "แบดมินตัน", "บาสเกตบอล", "ปิงปอง", "วอลเลย์บอล"];
 
-
   const holdUntil = location.state?.holdUntil; 
-  
-  // State สำหรับเก็บเวลาที่เหลือ (เช่น "04:59")
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     if (!holdUntil) return;
 
-    // สร้างตัวนับเวลาให้ทำงานทุกๆ 1 วินาที (1000 ms)
     const interval = setInterval(() => {
       const now = new Date().getTime();
       const expireTime = new Date(holdUntil).getTime();
       const distance = expireTime - now;
 
-      // ถ้าเวลาหมด (ระยะห่างติดลบ หรือเป็น 0)
       if (distance <= 0) {
         clearInterval(interval);
         setTimeLeft("00:00");
         alert("เวลาในการทำรายการหมดแล้ว ระบบได้ยกเลิกคิวของคุณ กรุณาทำรายการใหม่ครับ");
-        navigate('/booking'); // เด้งกลับไปหน้าจองสนาม
+        navigate('/booking');
       } else {
-        // คำนวณนาที และวินาที
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-        
-        // จัดฟอร์แมตให้เป็นเลข 2 หลักเสมอ (เช่น 04:05)
         setTimeLeft(`${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
       }
     }, 1000);
 
-    // เคลียร์ interval ทิ้งเมื่อผู้ใช้ปิดหน้านี้
     return () => clearInterval(interval);
   }, [holdUntil, navigate]);
 
-  
   const formatTimeRange = (times) => {
     if (!times || times.length === 0) return "";
 
-    // 1. เรียงลำดับเวลาจากน้อยไปมาก
     const sortedTimes = [...times].sort((a, b) => {
       return parseInt(a.split(":")[0]) - parseInt(b.split(":")[0]);
     });
@@ -76,11 +777,9 @@ export default function BorrowPage() {
       if (!currentRange) {
         currentRange = { start, end };
       } else {
-        // 2. เช็คว่าเวลาเริ่มต้นของอันนี้ ตรงกับเวลาสิ้นสุดของอันก่อนหน้าหรือไม่ (ต่อเนื่องกัน)
         if (start === currentRange.end) {
-          currentRange.end = end; // ขยายช่วงเวลาออกไป
+          currentRange.end = end;
         } else {
-          // 3. ถ้าไม่ต่อเนื่อง ให้เก็บช่วงเก่าแล้วเริ่มช่วงใหม่
           ranges.push(`${currentRange.start} - ${currentRange.end}`);
           currentRange = { start, end };
         }
@@ -91,98 +790,42 @@ export default function BorrowPage() {
       ranges.push(`${currentRange.start} - ${currentRange.end}`);
     }
 
-    return ranges.join(", "); // จะได้ผลลัพธ์เช่น "09:00 - 11:00, 14:00 - 15:00"
+    return ranges.join(", ");
   };
   
-  // useEffect(() => {
-  //   const fetchEquip = async () => {
-  //     let query = supabase.from('equipments').select('*');
-  //     if (filter !== "ทั้งหมด") {
-  //       query = query.eq('sport_type', filter.trim());
-  //     }
-  //     const { data, error } = await query;
-  //     if (error) return console.error(error);
-  //     setEquipments(data || []);
-  //   };
-  //   fetchEquip();
-  // }, [filter]);
-  // useEffect(() => {
-  //   const channel = supabase
-  //     .channel('realtime-equipments')
-  //     .on(
-  //       'postgres_changes',
-  //       { event: '*', schema: 'public', table: 'equipments' },
-  //       (payload) => {
-  //         setEquipments(prev =>
-  //           prev.map(e =>
-  //             e.id === payload.new.id ? payload.new : e
-  //           )
-  //         );
-  //       }
-  //     )
-  //     .subscribe();
-
-  //   return () => supabase.removeChannel(channel);
-  // }, []);
   useEffect(() => {
-  const fetchEquip = async () => {
-    let query = supabase.from('equipments').select('*');
-    if (filter !== "ทั้งหมด") {
-      query = query.eq('sport_type', filter.trim());
-    }
-    const { data, error } = await query;
-    if (!error) setEquipments(data || []);
-  };
+    const fetchEquip = async () => {
+      let query = supabase.from('equipments').select('*');
+      if (filter !== "ทั้งหมด") {
+        query = query.eq('sport_type', filter.trim());
+      }
+      const { data, error } = await query;
+      if (!error) setEquipments(data || []);
+    };
 
-  fetchEquip();
+    fetchEquip();
 
-  const channel = supabase
-    .channel('realtime-equipments')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'equipments' },
-      () => fetchEquip()
-    )
-    .subscribe();
+    const channel = supabase
+      .channel('realtime-equipments')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'equipments' },
+        () => fetchEquip()
+      )
+      .subscribe();
 
-  return () => supabase.removeChannel(channel);
-}, [filter]);
-  // const updateQuantity = (id, delta) => {
-  //   setSelectedEquips(prev => ({
-  //     ...prev,
-  //     [id]: Math.max(0, (prev[id] || 0) + delta)
-  //   }));
-  // };
+    return () => supabase.removeChannel(channel);
+  }, [filter]);
 
-
-  // useEffect(() => {
-  //   setSelectedEquips(prev => {
-  //     const updated = { ...prev };
-
-  //     equipments.forEach(item => {
-  //       if (updated[item.id] > item.stock) {
-  //         if (item.stock === 0) {
-  //           delete updated[item.id];
-  //         } else {
-  //           updated[item.id] = item.stock;
-  //         }
-  //       }
-  //     });
-
-  //     return updated;
-  //   });
-  // }, [equipments]);
   useEffect(() => {
     setSelectedEquips(prev => {
       const updated = { ...prev };
 
       equipments.forEach(item => {
-        // ✅ เปลี่ยนมาเช็ก updated[item.id]?.qty แทน
         if (updated[item.id] && updated[item.id].qty > item.stock) {
           if (item.stock === 0) {
             delete updated[item.id];
           } else {
-            // ✅ เปลี่ยนเฉพาะค่า qty ไม่ให้ทะลุสต๊อก
             updated[item.id] = { ...updated[item.id], qty: item.stock };
           }
         }
@@ -192,66 +835,88 @@ export default function BorrowPage() {
     });
   }, [equipments]);
 
-  
-  // const updateQuantity = (item, delta) => {
-  //   setSelectedEquips(prev => {
-  //     const currentQty = prev[item.id] || 0;
-  //     const newQty = currentQty + delta;
-
-  //     if (newQty < 0) return prev;
-
-  //     // ❗ เช็ก stock
-  //     if (newQty > item.stock) {
-  //       alert("อุปกรณ์ไม่เพียงพอ");
-  //       return prev;
-  //     }
-
-  //     return {
-  //       ...prev,
-  //       [item.id]: newQty
-  //     };
-  //   });
-  // };
   const updateQuantity = (item, delta) => {
-  setSelectedEquips(prev => {
-    const current = prev[item.id] || {
-      id: item.id,
-      qty: 0,
-      price: Number(item.price_per_unit),
-      name: item.name
-    };
+    setSelectedEquips(prev => {
+      const current = prev[item.id] || {
+        id: item.id,
+        qty: 0,
+        price: Number(item.price_per_unit),
+        name: item.name
+      };
 
-    const newQty = current.qty + delta;
-    if (newQty < 0) return prev;
-    if (newQty > item.stock) {
-      alert("อุปกรณ์ไม่เพียงพอ");
-      return prev;
-    }
+      const newQty = current.qty + delta;
+      if (newQty < 0) return prev;
+      if (newQty > item.stock) {
+        alert("อุปกรณ์ไม่เพียงพอ");
+        return prev;
+      }
 
-    return {
-      ...prev,
-      [item.id]: { ...current, qty: newQty }
-    };
-  });
-};
+      return {
+        ...prev,
+        [item.id]: { ...current, qty: newQty }
+      };
+    });
+  };
 
-  // กรองรายการที่เลือกจริงเพื่อนำมาแสดงในแถบสรุป
-  // const cartItems = equipments
-  //   .filter(e => selectedEquips[e.id] > 0)
-  //   .map(e => ({ ...e, qty: selectedEquips[e.id] }));
   const cartItems = Object.values(selectedEquips).filter(i => i.qty > 0);
-  // const equipTotal = cartItems.reduce((sum, item) => sum + (item.price_per_unit * item.qty), 0);
-  const equipTotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
+  const equipTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const grandTotal = (courtAmount || 0) + equipTotal;
 
   const today = new Date().toISOString().slice(0, 10);
-  const safeBookingDate =
-  bookingDate && bookingDate !== ""
-    ? bookingDate
-    : today;
+  const safeBookingDate = bookingDate && bookingDate !== "" ? bookingDate : today;
+
+  const handleCheckout = async () => {
+    if (!safeBookingDate) {
+      alert("ไม่พบวันที่จอง กรุณาเลือกวันที่ใหม่");
+      return;
+    }
+
+    let finalBookingId = bookingId;
+    let finalHoldUntil = holdUntil; // ✅ ค่าเดิมจากจองสนาม
+
+    if (!finalBookingId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("กรุณาเข้าสู่ระบบก่อนทำรายการ");
+        navigate('/login');
+        return;
+      }
+
+      const { data: newBooking, error } = await supabase
+        .from("bookings")
+        .insert([{
+          user_id: session.user.id,
+          court_id: null,
+          booking_date: safeBookingDate,
+          total_price: grandTotal,
+          status: "pending",
+          hold_until: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+        return;
+      }
+
+      finalBookingId = newBooking.id;
+      finalHoldUntil = newBooking.hold_until; // ✅ เก็บไว้ใน scope นี้
+    }
+
+    navigate('/pay', {
+      state: {
+        bookingId: finalBookingId,
+        courtData,
+        bookingTimes,
+        bookingDate: safeBookingDate,
+        selectedEquipments: cartItems,
+        holdUntil: finalHoldUntil, // ✅ ใช้ตัวนี้แทน
+        totalAmount: grandTotal
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 pb-40">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -276,23 +941,18 @@ export default function BorrowPage() {
                   <p className="text-teal-600 font-bold text-sm">฿{item.price_per_unit}</p>
                 </div>
                 <div className="flex items-center bg-gray-50 rounded-xl p-1 gap-3">
-                  {/* <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button> */}
                   <button onClick={() => updateQuantity(item, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">－</button>
-
-                  {/* <span className="w-4 text-center font-bold">{selectedEquips[item.id] || 0}</span> */}
                   <span className="w-4 text-center font-bold">
                     {selectedEquips[item.id]?.qty || 0}
                   </span>
-                  {/* <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button> */}
                   <button onClick={() => updateQuantity(item, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-bold">＋</button>
-
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ส่วนสรุปรายการ (Right Side - Summary) */}
+        {/* ส่วนสรุปรายการ (Right Side) */}
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-[2rem] shadow-xl border border-gray-100 sticky top-8">
             <h2 className="text-xl font-black mb-4 flex justify-between">
@@ -300,12 +960,10 @@ export default function BorrowPage() {
             </h2>
             
             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
-              {/* ถ้ามีการจองสนามมา ให้โชว์ค่าสนาม */}
               {courtData && (
                 <div className="flex justify-between items-start text-sm bg-[#003E77]/20 p-3 rounded-xl border border-teal-100">
                   <div>
                     <p className="font-bold text-gray-700">สนาม: {courtData.name}</p>
-                    {/* <p className="text-xs text-teal-600">{bookingTimes.length} ชม. ({bookingTimes.join(' , ')})</p> */}
                     <div className="text-xs text-gray-700 flex flex-wrap gap-1 items-center">
                       <span className="font-bold">เวลา:</span>
                       {formatTimeRange(bookingTimes).split(', ').map((range, index) => (
@@ -317,17 +975,9 @@ export default function BorrowPage() {
                     </div>
                   </div>
                   <p className="font-bold text-gray-700">฿{courtAmount.toLocaleString()}</p>
-
                 </div>
               )}
 
-              {/* รายการอุปกรณ์ที่เลือก */}
-              {/* {cartItems.map(item => (
-                <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
-                  <p className="text-gray-600">{item.name} <span className="font-bold text-gray-900">x{item.qty}</span></p>
-                  <p className="font-bold text-gray-800">฿{(item.price_per_unit * item.qty).toLocaleString()}</p>
-                </div>
-              ))} */}
               {cartItems.map(item => (
                 <div key={item.id} className="flex justify-between text-sm p-2 border-b border-gray-50">
                   <p className="font-bold text-gray-900">
@@ -338,6 +988,7 @@ export default function BorrowPage() {
                   </p>
                 </div>
               ))}
+
               {cartItems.length === 0 && !courtData && (
                 <p className="text-center text-gray-400 py-10 italic">ยังไม่มีรายการที่เลือก</p>
               )}
@@ -353,38 +1004,17 @@ export default function BorrowPage() {
                 <span className="text-teal-600">฿{grandTotal.toLocaleString()}</span>
               </div>
             </div>
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mt-3 flex justify-between items-center">
-              <span className="font-bold">กรุณาทำรายการภายในเวลา</span>
-              <span className="text-xl font-black">{timeLeft}</span>
-            </div>
+
+            {holdUntil && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mt-3 flex justify-between items-center">
+                <span className="font-bold">กรุณาทำรายการภายในเวลา</span>
+                <span className="text-xl font-black">{timeLeft}</span>
+              </div>
+            )}
+
             <button 
               disabled={grandTotal === 0}
-              onClick={() => {
-                if (!safeBookingDate) {
-                  alert("ไม่พบวันที่จอง กรุณาเลือกวันที่ใหม่");
-                  return;
-                }
-
-                // navigate('/pay', {
-                //   state: {
-                //     ...location.state,
-                //     bookingDate: safeBookingDate,
-                //     selectedEquipments: cartItems,
-                //     totalAmount: grandTotal
-                //   }
-                // });
-                navigate('/pay', {
-                  state: {
-                    bookingId, // ✅ ใส่ตรงนี้
-                    courtData,
-                    bookingTimes,
-                    bookingDate: safeBookingDate,
-                    selectedEquipments: cartItems,
-                    holdUntil: holdUntil,
-                    totalAmount: grandTotal
-                  }
-                });
-              }}
+              onClick={handleCheckout}
               className="w-full bg-[#003E77] hover:bg-blue-700 text-white py-4 rounded-2xl font-bold mt-6 transition-all disabled:bg-gray-200"
             >
               ไปหน้าชำระเงิน

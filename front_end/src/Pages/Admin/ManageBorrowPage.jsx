@@ -3,7 +3,7 @@ import { supabase } from "../../supabaseClient";
 
 const ManageBorrowPage = () => {
   const [bookings, setBookings] = useState([]);
-
+  const [search, setSearch] = useState("");
   const fetchData = async () => {
     const { data } = await supabase
       .from("bookings")
@@ -12,21 +12,34 @@ const ManageBorrowPage = () => {
         status,
         users(username),
         booking_date,
-        booking_equipments(quantity, equipments(name))
+        court_id,
+        booking_equipments(quantity, equipments(id,name))
       `)
       .eq("status", "paid")
-      .is("court_id",null);
-
-    setBookings(data || []);
+      // .is("court_id",null);
+        
+    // setBookings(data || []);
+    const filtered = (data || []).filter(b => b.booking_equipments.length > 0);
+    setBookings(filtered);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleReturn = async (bookingId) => {
+  const handleReturn = async (bookingId, bookingEquipments) => {
     const confirm = window.confirm("ยืนยันว่าคืนอุปกรณ์แล้ว?");
     if (!confirm) return;
+
+    // ✅ คืน stock อุปกรณ์
+    if (bookingEquipments && bookingEquipments.length > 0) {
+      for (const item of bookingEquipments) {
+        await supabase.rpc("increment_stock", {
+          equip_id: item.equipments.id,
+          amount: item.quantity
+        });
+      }
+    }
 
     const { error } = await supabase
       .from("bookings")
@@ -45,7 +58,15 @@ const ManageBorrowPage = () => {
   return (
   <div className="p-6">
     <h1 className="text-2xl font-bold mb-6">รายการยืมอุปกรณ์</h1>
-
+    <div className="mb-4">
+      <input
+        type="text"
+        placeholder="ค้นหาชื่อผู้ใช้..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full md:w-1/3 px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+    </div>
     <div className="overflow-hidden rounded-lg  bg-white shadow-md">
       {/* Header */}
       {/* <div className="grid grid-cols-5 bg-blue-500 text-white text-sm font-semibold px-6 py-3">
@@ -68,12 +89,34 @@ const ManageBorrowPage = () => {
       </div>
 
       {/* Rows */}
-      {bookings.map(b => {
-        const borrowedDate = new Date(b.booking_date + "T00:00:00");
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+      {bookings
+        .filter(b =>
+          b.users?.username
+            ?.toLowerCase()
+            .includes(search.toLowerCase())
+        ).map(b => {
+        // const borrowedDate = new Date(b.booking_date + "T00:00:00");
+        // const today = new Date();
+        // today.setHours(0, 0, 0, 0);
 
-        const isOverdue = borrowedDate < today;
+        // const isOverdue = borrowedDate < today;
+        const borrowedDate = new Date(b.booking_date);
+
+        // 🔥 เช็คว่าเป็น "ยืมอุปกรณ์ล้วน"
+        const isEquipmentOnly = !b.court_id;
+
+        let isOverdue = false;
+
+        // ✅ เฉพาะ "จองสนาม" เท่านั้นที่ต้องเช็ค overdue
+        if (!isEquipmentOnly) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const compareDate = new Date(borrowedDate);
+          compareDate.setHours(0, 0, 0, 0);
+
+          isOverdue = compareDate < today;
+        }
         const totalItems = b.booking_equipments.reduce(
           (sum, e) => sum + e.quantity,
           0
@@ -128,8 +171,19 @@ const ManageBorrowPage = () => {
             <div>{borrowedDate.toLocaleDateString("en-GB")}</div>
 
             {/* Equipment */}
-            <div className="text-gray-600 text-xs">
+            {/* <div className="text-gray-600 text-xs">
               {equipmentNames || "-"}
+            </div> */}
+            <div className="text-gray-600 text-xs space-y-0.5">
+              {b.booking_equipments.length > 0
+                ? b.booking_equipments.map((e, i) => (
+                    <div key={i}>
+                      {e.equipments?.name}{" "}
+                      <span className="font-bold text-gray-800">x{e.quantity}</span>
+                    </div>
+                  ))
+                : <span className="text-gray-300">-</span>
+              }
             </div>
 
             {/* Items */}
@@ -147,7 +201,7 @@ const ManageBorrowPage = () => {
             {/* Action */}
             <div className="flex justify-center items-center">
               <button
-                onClick={() => handleReturn(b.id)}
+                onClick={() => handleReturn(b.id, b.booking_equipments)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs font-semibold"
               >
                 Process Return

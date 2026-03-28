@@ -22,12 +22,19 @@ export default function PayPage() {
   } = location.state || {};
 
   // 🛡️ ดักจับกรณีผู้ใช้รีเฟรชหน้าเว็บแล้วข้อมูลหาย
+  // useEffect(() => {
+  //   if (!bookingId) {
+  //     alert("ไม่พบข้อมูลการจอง กรุณาทำรายการใหม่อีกครั้งครับ");
+  //     navigate('/booking');
+  //   }
+  // }, [bookingId, navigate]);
   useEffect(() => {
-    if (!bookingId) {
+    // ✅ ถ้าไม่มี state เลย (รีเฟรชหน้า) ค่อย redirect
+    if (!location.state) {
       alert("ไม่พบข้อมูลการจอง กรุณาทำรายการใหม่อีกครั้งครับ");
       navigate('/booking');
     }
-  }, [bookingId, navigate]);
+  }, []);
 
   // const totalAmount = courtAmount;
   const [qrCode, setQrCode] = useState("sample");

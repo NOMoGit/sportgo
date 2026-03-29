@@ -152,7 +152,7 @@ const HistoryPage = () => {
           { id: 'all', label: 'ทั้งหมด', color: 'bg-gray-800' },
           { id: 'booked', label: 'จองสำเร็จ', color: 'bg-green-600' },
           { id: 'cancelled', label: 'ยกเลิกแล้ว', color: 'bg-red-500' },
-          { id: 'pending', label: 'รอชำระเงิน', color: 'bg-yellow-500' },
+          { id: 'pending', label: 'ตรวจสอบการชำระเงิน', color: 'bg-yellow-500' },
           { id: 'borrowed', label: 'ยืมสำเร็จ', color: 'bg-blue-600' },
           { id: 'returned', label: 'คืนแล้ว', color: 'bg-blue-600' }
         ].map(tab => (
@@ -194,16 +194,16 @@ const HistoryPage = () => {
             </div>
             <div className="space-y-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-2xl mb-6">
               <div className="flex items-center gap-3">
-                <span className="text-lg">📅</span> 
+                {/* <span className="text-lg">📅</span>  */}
                 <span className="font-bold">{item.date}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-lg">⏰</span> 
+                {/* <span className="text-lg">⏰</span>  */}
                 <span className="font-black text-gray-900">{formatTimeDisplay(item.bookingTimes)}</span>
               </div>
               {item.items && (
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">👕</span> 
+                  {/* <span className="text-lg">👕</span>  */}
                   <span>{item.items}</span>
                 </div>
               )}

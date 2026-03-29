@@ -165,7 +165,7 @@ export default function PayPage() {
   useEffect(() => {
     const channel = supabase
       .channel("realtime-pay-courts")
-      .on(
+      .on(  
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "courts" },
         (payload) => {

@@ -43,10 +43,80 @@ app.get('/api/courts', async (req, res) => {
   }
 });
 
+// app.post('/api/create-booking', upload.single('slip_image'), async (req, res) => {
+//   try {
+//     const { user_id, court_id, total_price, bookingDate, booking_id } = req.body;
+
+//     const bookingTimes = JSON.parse(req.body.bookingTimes || '[]');
+//     const selectedEquipments = JSON.parse(req.body.selectedEquipments || '[]');
+
+//     const slipFile = req.file;
+//     if (!slipFile) {
+//       return res.status(400).json({ success: false, message: "ไม่พบไฟล์สลิป" });
+//     }
+
+//     const fileName = `receipts/${Date.now()}-${slipFile.originalname}`;
+
+//     const { error: uploadError } = await supabase.storage
+//       .from('receipts')
+//       .upload(fileName, slipFile.buffer, {
+//         contentType: slipFile.mimetype
+//       });
+
+//     if (uploadError) throw uploadError;
+
+//     // 2. เอา public URL
+//     const { data: publicData } = supabase.storage
+//       .from('receipts')
+//       .getPublicUrl(fileName);
+
+//     const { data: checkBooking } = await supabase
+//       .from('bookings')
+//       .select('status')
+//       .eq('id', booking_id)
+//       .single();
+
+//     if (!checkBooking || checkBooking.status === 'cancelled') {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: "คิวนี้หมดเวลาและถูกยกเลิกไปแล้ว หากโอนเงินมาแล้วกรุณาติดต่อแอดมิน" 
+//       });
+//     }
+//     const { data: updatedBooking, error: updateError } = await supabase
+//       .from('bookings')
+//       .update({
+//         user_id,
+//         total_price,
+//         receipt_url: publicData.publicUrl,
+//         status: 'waiting'
+//       })
+//       .eq('id', booking_id)
+//       .select()    
+//       .single();   
+
+//     if (updateError) throw updateError;
+
+//     console.log("🔥 UPDATED BOOKING:", updatedBooking);
+
+//     if (selectedEquipments && selectedEquipments.length > 0) {
+//       const equipData = selectedEquipments.map(item => ({
+//         booking_id: booking_id,
+//         equipment_id: item.id,
+//         quantity: item.qty 
+//       }));
+//       const { error: eError } = await supabase.from('booking_equipments').insert(equipData);
+//       if (eError) throw eError;
+//     }
+    
+//     res.status(200).json({ success: true, message: "บันทึกการจองเรียบร้อย", booking_id: booking_id });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// });
+
 app.post('/api/create-booking', upload.single('slip_image'), async (req, res) => {
   try {
     const { user_id, court_id, total_price, bookingDate, booking_id } = req.body;
-
     const bookingTimes = JSON.parse(req.body.bookingTimes || '[]');
     const selectedEquipments = JSON.parse(req.body.selectedEquipments || '[]');
 
@@ -55,21 +125,7 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
       return res.status(400).json({ success: false, message: "ไม่พบไฟล์สลิป" });
     }
 
-    const fileName = `receipts/${Date.now()}-${slipFile.originalname}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('receipts')
-      .upload(fileName, slipFile.buffer, {
-        contentType: slipFile.mimetype
-      });
-
-    if (uploadError) throw uploadError;
-
-    // 2. เอา public URL
-    const { data: publicData } = supabase.storage
-      .from('receipts')
-      .getPublicUrl(fileName);
-
+    // 1. เช็ค booking ยังไม่ถูก cancel
     const { data: checkBooking } = await supabase
       .from('bookings')
       .select('status')
@@ -77,11 +133,88 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
       .single();
 
     if (!checkBooking || checkBooking.status === 'cancelled') {
-      return res.status(400).json({ 
-        success: false, 
-        message: "คิวนี้หมดเวลาและถูกยกเลิกไปแล้ว หากโอนเงินมาแล้วกรุณาติดต่อแอดมิน" 
+      return res.status(400).json({
+        success: false,
+        message: "คิวนี้หมดเวลาและถูกยกเลิกไปแล้ว หากโอนเงินมาแล้วกรุณาติดต่อแอดมิน"
       });
     }
+
+    // 2. เช็ค stock อุปกรณ์ตาม time slot ก่อน insert
+    if (selectedEquipments && selectedEquipments.length > 0) {
+
+      // หา booking_ids ที่ใช้ time_slot เดียวกัน วันเดียวกัน
+      const { data: slots } = await supabase
+        .from('booking_time_slots')
+        .select('booking_id')
+        .in('time_slot', bookingTimes)
+        .eq('booking_date', bookingDate);
+
+      const overlappingIds = [...new Set((slots || []).map(s => s.booking_id))]
+        .filter(id => String(id) !== String(booking_id)); // ไม่นับตัวเอง
+
+      let usedStockMap = {};
+
+      if (overlappingIds.length > 0) {
+        // กรองเฉพาะ active bookings
+        const { data: activeBookings } = await supabase
+          .from('bookings')
+          .select('id')
+          .in('id', overlappingIds)
+          .in('status', ['paid', 'waiting', 'pending']);
+
+        const activeIds = (activeBookings || []).map(b => b.id);
+
+        if (activeIds.length > 0) {
+          const { data: usedEquips } = await supabase
+            .from('booking_equipments')
+            .select('equipment_id, quantity')
+            .in('booking_id', activeIds);
+
+          (usedEquips || []).forEach(e => {
+            usedStockMap[e.equipment_id] = (usedStockMap[e.equipment_id] || 0) + e.quantity;
+          });
+        }
+      }
+
+      // ดึง stock จริงของแต่ละอุปกรณ์
+      const equipmentIds = selectedEquipments.map(e => e.id);
+      const { data: equipmentData } = await supabase
+        .from('equipments')
+        .select('id, stock, name')
+        .in('id', equipmentIds);
+
+      // เช็คว่าพอมั้ย
+      for (const item of selectedEquipments) {
+        const equip = equipmentData?.find(e => e.id === item.id);
+        if (!equip) {
+          return res.status(400).json({
+            success: false,
+            message: `ไม่พบอุปกรณ์ ${item.name}`
+          });
+        }
+        const usedQty = usedStockMap[item.id] || 0;
+        const realStock = equip.stock - usedQty;
+        if (item.qty > realStock) {
+          return res.status(400).json({
+            success: false,
+            message: `${equip.name} ไม่เพียงพอในช่วงเวลานี้ (เหลือ ${realStock} ชิ้น)`
+          });
+        }
+      }
+    }
+
+    // 3. Upload slip
+    const fileName = `receipts/${Date.now()}-${slipFile.originalname}`;
+    const { error: uploadError } = await supabase.storage
+      .from('receipts')
+      .upload(fileName, slipFile.buffer, { contentType: slipFile.mimetype });
+    if (uploadError) throw uploadError;
+
+    const { data: publicData } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(fileName);
+
+    // 4. Update booking status
     const { data: updatedBooking, error: updateError } = await supabase
       .from('bookings')
       .update({
@@ -91,29 +224,31 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
         status: 'waiting'
       })
       .eq('id', booking_id)
-      .select()    
-      .single();   
+      .select()
+      .single();
 
     if (updateError) throw updateError;
 
-    console.log("🔥 UPDATED BOOKING:", updatedBooking);
-
+    // 5. Insert booking_equipments
     if (selectedEquipments && selectedEquipments.length > 0) {
       const equipData = selectedEquipments.map(item => ({
         booking_id: booking_id,
         equipment_id: item.id,
-        quantity: item.qty 
+        quantity: item.qty
       }));
-      const { error: eError } = await supabase.from('booking_equipments').insert(equipData);
+      const { error: eError } = await supabase
+        .from('booking_equipments')
+        .insert(equipData);
       if (eError) throw eError;
     }
-    
-    res.status(200).json({ success: true, message: "บันทึกการจองเรียบร้อย", booking_id: booking_id });
+
+    res.status(200).json({ success: true, message: "บันทึกการจองเรียบร้อย", booking_id });
+
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-  
+
 // --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
   const { username, email, password } = req.body;

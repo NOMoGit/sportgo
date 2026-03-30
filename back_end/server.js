@@ -408,7 +408,6 @@ app.post('/api/hold-booking', async (req, res) => {
 
     if (clearError) throw clearError;
 
-    // 🔹 สร้าง booking (hold 5 นาที)
     const { data: booking, error: bError } = await supabase
       .from('bookings')
       .insert([{

@@ -102,8 +102,10 @@ export default function PayPage() {
       alert("ยอดเงินไม่ถูกต้อง");
       return;
     }
-
-    formData.append('total_price', Number(totalAmount));
+    const equipmentTotal = selectedEquipments.reduce((sum, item) => {
+      return sum + (item.price * item.qty);
+    }, 0);
+    formData.append('total_price', Number(equipmentTotal));
     if (safeBookingDate) {
       formData.append('bookingDate', safeBookingDate);
     }

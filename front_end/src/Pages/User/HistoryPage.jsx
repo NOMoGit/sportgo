@@ -234,7 +234,7 @@ const HistoryPage = () => {
                   <button
                     onClick={() => navigate('/borrow', {
                       state: {
-                        bookingId: null,
+                        bookingId: item.id,
                         courtData: { name: item.title, category: item.courtCategory },
                         bookingTimes: item.bookingTimes,
                         bookingDate: item.rawDate,

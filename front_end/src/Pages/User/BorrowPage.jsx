@@ -126,7 +126,6 @@ export default function BorrowPage() {
 
     setUsedStockMap(stockMap);
   };
-  // --- Fetch equipments + realtime ---
   useEffect(() => {
     const fetchEquip = async () => {
       let query = supabase.from('equipments').select('*');
@@ -172,7 +171,6 @@ export default function BorrowPage() {
     };
   }, [bookingTimes, safeBookingDate]);
 
-  // --- ป้องกัน qty เกิน realStock เมื่อ stock เปลี่ยน ---
   useEffect(() => {
     setSelectedEquips(prev => {
       const updated = { ...prev };
@@ -220,7 +218,24 @@ export default function BorrowPage() {
       return;
     }
 
-    let finalBookingId = bookingId;
+    let finalBookingId;
+    if (bookingId) {
+      finalBookingId = bookingId;
+    } else {
+      const { data: newBooking, error: bookingError } = await supabase
+        .from("bookings")
+        .insert([{
+          user_id: user.id,
+          total_price: totalPrice,
+          status: "pending",
+          booking_date: bookingDate
+        }])
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+      finalBookingId = newBooking.id;
+    }
     let finalHoldUntil = holdUntil;
 
     if (!finalBookingId) {
@@ -260,9 +275,11 @@ export default function BorrowPage() {
           time_slot: time
         }));
 
-        await supabase
-          .from('booking_time_slots')
-          .insert(timeData);
+        if (!bookingId) {
+          await supabase
+            .from("booking_time_slots")
+            .insert(timesData);
+        }
       }
     }
 

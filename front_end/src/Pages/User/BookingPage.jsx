@@ -313,7 +313,14 @@ const BookingPage = () => {
               )}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {timeSlots.map(time => {
-                  const isBooked = bookedTimes.includes(time) || isClosed;
+                  const now = new Date();
+
+                  const [start] = time.split(" - ");
+                  const slotTime = new Date(`${selectedDate}T${start}:00`);
+
+                  const isPast = slotTime <= now;
+
+                  const isBooked = bookedTimes.includes(time) || isClosed || isPast;
                   return (
                     <button 
                       key={time} 

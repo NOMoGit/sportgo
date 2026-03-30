@@ -754,7 +754,21 @@ export default function BorrowPage() {
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, []);
+  // เพิ่ม handleCancel function
+  const handleCancel = async () => {
+    const confirmed = window.confirm("ยืนยันการยกเลิกการจองใช่ไหมครับ?");
+    if (!confirmed) return;
 
+    if (bookingId) {
+      await fetch(`${API}/api/cancel-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: bookingId })
+      });
+    }
+
+    navigate('/booking');
+  };
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 pb-40">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -917,6 +931,12 @@ export default function BorrowPage() {
               className="w-full bg-[#003E77] hover:bg-blue-800 active:scale-[0.98] text-white py-3.5 rounded-xl font-bold text-sm mt-4 transition-all disabled:bg-gray-100 disabled:text-gray-300"
             >
               ไปหน้าชำระเงิน
+            </button>
+            <button
+              onClick={handleCancel}
+              className="w-full mt-2 py-3 rounded-xl border-2 border-red-200 text-red-500 font-bold text-sm hover:bg-red-50 transition-all"
+            >
+              ยกเลิกการจอง
             </button>
           </div>
         </div>

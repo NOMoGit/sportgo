@@ -261,7 +261,7 @@ const HistoryPage = () => {
         const { data, error } = await supabase
           .from('bookings')
           .select(`
-            id, total_price, status, booking_date,
+            id, total_price, status, booking_date, hold_until, court_id,
             courts ( name, category ),
             booking_time_slots ( time_slot ),
             booking_equipments ( quantity, equipments ( name ) )
@@ -303,6 +303,9 @@ const HistoryPage = () => {
             status: uiStatus,
             statusText: uiStatusText,
             courtCategory: item.courts?.category || null,
+            holdUntil: item.hold_until,
+            courtId: item.court_id,
+            rawStatus: item.status,
           };
         });
 
@@ -498,6 +501,39 @@ const HistoryPage = () => {
                     ยืมอุปกรณ์เพิ่ม
                   </button>
                 )}
+                {item.rawStatus === 'pending' && (() => {
+                  const holdExpired = !item.holdUntil || new Date(item.holdUntil) <= new Date();
+
+                  if (!holdExpired) {
+                    return (
+                      <button
+                        onClick={() => navigate('/pay', {
+                          state: {
+                            bookingId: item.id,
+                            courtData: { id: item.courtId, name: item.title, category: item.courtCategory },
+                            bookingTimes: item.bookingTimes,
+                            bookingDate: item.rawDate,
+                            selectedEquipments: [],
+                            holdUntil: item.holdUntil,
+                            totalAmount: parseFloat(item.price.replace('฿', '').replace(',', ''))
+                          }
+                        })}
+                        className="w-full py-2.5 rounded-xl bg-[#003E77] hover:bg-blue-800 text-white text-sm font-semibold transition-all"
+                      >
+                        กลับไปชำระเงิน
+                      </button>
+                    );
+                  } else {
+                    return (
+                      <button
+                        onClick={() => navigate('/booking')}
+                        className="w-full py-2.5 rounded-xl border-2 border-gray-200 text-gray-500 text-sm font-semibold hover:bg-gray-50 transition-all"
+                      >
+                        จองใหม่อีกครั้ง
+                      </button>
+                    );
+                  }
+                })()}
               </div>
             );
           }) : (

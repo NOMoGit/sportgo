@@ -205,6 +205,20 @@ export default function PayPage() {
 
     return () => supabase.removeChannel(channel);
   }, []);
+  const handleCancel = async () => {
+    const confirmed = window.confirm("ยืนยันการยกเลิกการจองใช่ไหมครับ?");
+    if (!confirmed) return;
+
+    if (bookingId) {
+      await fetch(`${API}/api/cancel-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: bookingId })
+      });
+    }
+
+    navigate('/booking');
+  };
   return (
     <div className="p-8 max-w-4xl mx-auto min-h-screen bg-gray-50">
       <h1 className="text-3xl font-black mb-6 text-gray-900">ชำระเงิน</h1>
@@ -302,6 +316,13 @@ export default function PayPage() {
              >
                {loading ? "กำลังดำเนินการ..." : "ยืนยันการชำระเงิน"}
              </button>
+            <button
+              onClick={handleCancel}
+              disabled={loading}
+              className="w-full mt-2 py-3 rounded-xl border-2 border-red-200 text-red-500 font-bold text-sm hover:bg-red-50 transition-all disabled:opacity-30"
+            >
+              ยกเลิกการจอง
+            </button>
           </div>
       </div>
     </div>

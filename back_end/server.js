@@ -446,7 +446,23 @@ app.post('/api/hold-booking', async (req, res) => {
     res.status(500).json({ success: false, message: `ระบบขัดข้อง: ${err.message}` });
   }
 });
+app.post('/api/cancel-booking', async (req, res) => {
+  const { booking_id } = req.body;
 
+  // ลบ time slots ออก (release hold)
+  await supabase
+    .from('booking_time_slots')
+    .delete()
+    .eq('booking_id', booking_id);
+
+  // อัปเดต status เป็น cancelled
+  await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('booking_id', booking_id);
+
+  res.json({ success: true });
+});
 app.get('/api/booked-slots', async (req, res) => {
   const { court_id, date } = req.query;
 

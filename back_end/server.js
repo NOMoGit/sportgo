@@ -5,21 +5,21 @@ import { createClient } from '@supabase/supabase-js';
 import axios from "axios";
 
 import multer from 'multer';
-async function verifySlip(buffer) {
+async function verifySlip(buffer, mimetype) {
   try {
     const response = await axios.post(
       "https://api.slipok.com/api/line/apikey/63606",
       buffer,
       {
         headers: {
-          "Content-Type": "image/jpeg"
+          "Content-Type": mimetype || "image/jpeg"  // 👈 ใช้ mimetype จริง
         }
       }
     );
-
     return response.data;
   } catch (err) {
-    console.error("❌ SlipOK error:", err.response?.data || err.message);
+    console.error("❌ SlipOK error status:", err.response?.status);
+    console.error("❌ SlipOK error body:", JSON.stringify(err.response?.data, null, 2));
     return null;
   }
 }
@@ -87,7 +87,7 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
     let autoApproved = false;
 
     // try {
-    //   const result = await verifySlip(slipFile.buffer);
+    //   const result = await verifySlip(slipFile.buffer, slipFile.mimetype);
 
     //   if (result && result.success) {
     //     slipData = result.data;
@@ -100,6 +100,28 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
     //   console.log("⚠️ Slip API ล่ม ใช้ manual");
     // }
     // 🧪 MOCK MODE
+    try {
+      console.log("📤 Sending to SlipOK:", { mimetype: slipFile.mimetype, bufferSize: slipFile.buffer.length });
+      
+      const result = await verifySlip(slipFile.buffer, slipFile.mimetype);
+
+      console.log("✅ SlipOK response:", JSON.stringify(result, null, 2));
+      console.log("💰 amount from slip:", result?.data?.amount);
+      console.log("💰 total_price expected:", total_price);
+      console.log("✅ match?", Number(result?.data?.amount) === Number(total_price));
+
+      if (result && result.success) {
+        slipData = result.data;
+        if (Number(slipData.amount) === Number(total_price)) {
+          autoApproved = true;
+          console.log("🎉 Auto approved!");
+        } else {
+          console.log("⚠️ Amount mismatch → manual review");
+        }
+      }
+    } catch (err) {
+      console.log("⚠️ Slip API ล่ม ใช้ manual");
+    }
     slipData = {
       transRef: "MOCK_" + Date.now()
     };

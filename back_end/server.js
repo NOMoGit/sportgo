@@ -164,19 +164,30 @@ app.post('/api/create-booking', upload.single('slip_image'), async (req, res) =>
     const expandedTimes = bookingTimes;
 
     // 1. เช็ค booking ยังไม่ cancel
-    const { data: checkBooking } = await supabase
-      .from('bookings')
-      .select('status')
-      .eq('id', booking_id)
-      .single();
+    // const { data: checkBooking } = await supabase
+    //   .from('bookings')
+    //   .select('status')
+    //   .eq('id', booking_id)
+    //   .single();
+    
+    // if (!checkBooking || checkBooking.status === 'cancelled') {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "คิวนี้หมดเวลาแล้ว"
+    //   });
+    // }
+    const { error: rpcError } = await supabase.rpc('safe_create_booking', {
+      p_booking_id: booking_id,
+      p_user_id: user_id,
+      p_total_price: total_price
+    });
 
-    if (!checkBooking || checkBooking.status === 'cancelled') {
+    if (rpcError) {
       return res.status(400).json({
         success: false,
-        message: "คิวนี้หมดเวลาแล้ว"
+        message: rpcError.message
       });
     }
-
     // 2. เช็ค stock
     if (selectedEquipments.length > 0) {
 

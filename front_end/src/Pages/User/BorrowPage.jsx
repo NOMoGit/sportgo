@@ -390,7 +390,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from "../../supabaseClient";
-
+const API = import.meta.env.VITE_API_URL;
 const getLocalDateString = () => {
   const date = new Date();
   const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));

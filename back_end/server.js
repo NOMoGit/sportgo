@@ -17,7 +17,7 @@ async function verifySlip(buffer, mimetype) {
     const response = await axios.post(
       "https://api.slipok.com/api/line/apikey/63606",
       form,
-      { headers: { ...form.getHeaders() } }
+      { headers: { ...form.getHeaders(),"x-authorization": "slipok-5b9a2551-3eca-4742-841d-b57f10db65f4" } }
     );
     return response.data;
   } catch (err) {

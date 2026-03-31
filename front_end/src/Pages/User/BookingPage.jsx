@@ -226,6 +226,10 @@ const BookingPage = () => {
       const result = await res.json();
       if (!result.success) {
         alert(`เกิดข้อผิดพลาด: ${result.message || result.error || "ระบบขัดข้อง"}`);
+        setSelectedTimes([]);
+        const refreshRes = await fetch(`${API}/api/booked-slots?court_id=${selectedCourt.id}&date=${selectedDate}`);
+        const refreshData = await refreshRes.json();
+        setBookedTimes(refreshData);
         setLoading(false); 
         return;
       }
@@ -350,7 +354,7 @@ const BookingPage = () => {
                 onClick={confirmBooking} 
                 className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all ${selectedTimes.length > 0 ? "bg-[#003E77] hover:bg-blue-700 active:scale-95" : "bg-gray-300"}`}
               >
-                {selectedTimes.length > 0 ? "ดำเนินการต่อ" : "กรุณาเลือกเวลา"}
+                {loading ? "กำลังตรวจสอบ..." : selectedTimes.length > 0 ? "ดำเนินการต่อ" : "กรุณาเลือกเวลา"}
               </button>
             </div>
           </div>
